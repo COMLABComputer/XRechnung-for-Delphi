@@ -1,4 +1,4 @@
-{
+﻿{
 License XRechnung-for-Delphi
 
 Copyright (C) 2025 Landrix Software GmbH & Co. KG
@@ -521,7 +521,7 @@ type
     SellersItemIdentification : String; //BG-31, BT-155 Artikelnummer, vom Verkaeufer vergeben
     BuyersItemIdentification : String; //BG-31, BT-156 Artikelkennung, vom Kaeufer vergeben
     OrderLineReference : String; //BT-132 Referenz zur Bestellposition, vom Kaeufer vergeben
-    BuyerAccountingReference : String; //BT-133 Buchungsreferenz des Kaeufers f�r die Rechnungsposition, vom Kaeufer vergeben
+    BuyerAccountingReference : String; //BT-133 Buchungsreferenz des Kaeufers fuer die Rechnungsposition, vom Kaeufer vergeben
     TaxPercent : double; //BG-30, BT-152 MwSt
     TaxCategory : TInvoiceDutyTaxFeeCategoryCode; //BG-30, BT-151 MwSt-Einordnung
     // BG-29 Detailinformationen zum (Artikel-)-Preis
@@ -665,6 +665,7 @@ type
 
   TInvoiceNote = class(Tobject)
   public
+    ContentCode : String;
     Content : String;
     SubjectCode : TInvoiceNoteSubjectCode;
   public
@@ -725,6 +726,7 @@ type
     PurchaseOrderReference : String; //Bestellnummer oder Vertragsnummer des Kaeufers
     ProjectReference : String;
     ContractDocumentReference : String;
+    BuyerAccountingReference : String; //BT-19 Buchhaltungsreferenz des Kaeufers
     DeliveryReceiptNumber : String; //Lieferscheinnummer (Lieferscheindatum fehlt und wuerde nur in ZUGFeRD unterstuetzt)
 
     AccountingSupplierParty : TInvoiceAccountingParty;

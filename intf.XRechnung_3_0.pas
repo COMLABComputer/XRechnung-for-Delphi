@@ -214,6 +214,8 @@ begin
     end;
     if TXRechnungXMLHelper.SelectNode(xml,'//cbc:DocumentCurrencyCode',node) then
       _Invoice.InvoiceCurrencyCode := node.Text;
+    if TXRechnungXMLHelper.SelectNode(xml, '//cbc:AccountingCost', node) then
+      _Invoice.BuyerAccountingReference := node.Text;
     if TXRechnungXMLHelper.SelectNode(xml,'//cbc:BuyerReference',node) then
       _Invoice.BuyerReference := node.Text;
     if TXRechnungXMLHelper.SelectNode(xml,'//cac:InvoicePeriod',node) then
@@ -511,6 +513,7 @@ begin
     for i := 0 to nodes.length-1 do
     begin
       _Invoice.Notes.AddNote.Content := TXRechnungXMLHelper.SelectNodeText(nodes[i], './/ram:Content');
+      _Invoice.Notes.Last.ContentCode := TXRechnungXMLHelper.SelectNodeText(nodes[i], './/ram:ContentCode');
       _Invoice.Notes.Last.SubjectCode := TXRechnungHelper.InvoiceNoteSubjectCodeFromStr(TXRechnungXMLHelper.SelectNodeText(nodes[i], './/ram:SubjectCode'));
     end;
 
@@ -909,15 +912,22 @@ begin
         _Invoice.PayableAmount := TXRechnungHelper.AmountFromStr(TXRechnungXMLHelper.SelectNodeText(node2,'.//ram:DuePayableAmount'));
       end;
       if TXRechnungXMLHelper.SelectNodes(nodeApplicableHeaderTradeAgreement,'.//ram:InvoiceReferencedDocument',nodes) then
-      for i := 0 to nodes.length-1 do
-      with _Invoice.PrecedingInvoiceReferences.AddPrecedingInvoiceReference do
       begin
-        ID := TXRechnungXMLHelper.SelectNodeText(nodes[i],'.//ram:IssuerAssignedID');
-        if TXRechnungXMLHelper.SelectNode(nodes[i],'.//ram:FormattedIssueDateTime',node2) then
-        if TXRechnungXMLHelper.SelectNode(node2,'.//qdt:DateTimeString',node) then
-          IssueDate := TXRechnungHelper.DateFromStrUNCEFACTFormat(node.text);
+        for i := 0 to nodes.length-1 do
+        begin
+          with _Invoice.PrecedingInvoiceReferences.AddPrecedingInvoiceReference do
+          begin
+            ID := TXRechnungXMLHelper.SelectNodeText(nodes[i],'.//ram:IssuerAssignedID');
+            if TXRechnungXMLHelper.SelectNode(nodes[i],'.//ram:FormattedIssueDateTime',node2) then
+            begin
+              if TXRechnungXMLHelper.SelectNode(node2,'.//qdt:DateTimeString',node) then
+                IssueDate := TXRechnungHelper.DateFromStrUNCEFACTFormat(node.text);
+            end;
+          end;
+        end;
       end;
-
+      // BT-19
+      _Invoice.BuyerAccountingReference := TXRechnungXMLHelper.SelectNodeText(node2,'.//ram:ReceivableSpecifiedTradeAccountingAccount/ram:ID');
     end;
     Result := true;
   except
@@ -1104,6 +1114,11 @@ begin
          _Invoice.Notes[i].Content;
   xRoot.AddChild('cbc:DocumentCurrencyCode').Text := _Invoice.InvoiceCurrencyCode;
   //xRoot.AddChild('cbc:TaxCurrencyCode').Text := _Invoice.TaxCurrencyCode; //Nicht in XRechnung 3
+
+  // BT-19
+  if _Invoice.BuyerAccountingReference <> '' then
+    xRoot.AddChild('cbx:AccountingCost').Text := _Invoice.BuyerAccountingReference;
+
   xRoot.AddChild('cbc:BuyerReference').Text := _Invoice.BuyerReference;
   if (_Invoice.InvoicePeriodStartDate > 100) and (_Invoice.InvoicePeriodEndDate >= _Invoice.InvoicePeriodStartDate) then
   with xRoot.AddChild('cac:InvoicePeriod') do
@@ -1719,6 +1734,9 @@ begin
     for i := 0 to _Invoice.Notes.Count-1 do
     with AddChild('ram:IncludedNote') do
     begin
+      if _Invoice.Notes[i].ContentCode <> '' then
+        AddChild('ram:ContentCode').Text := _Invoice.Notes[i].ContentCode;
+
       AddChild('ram:Content').Text := _Invoice.Notes[i].Content;
       if _Invoice.Notes[i].SubjectCode <> insc_None then
         AddChild('ram:SubjectCode').Text := TXRechnungHelper.InvoiceNoteSubjectCodeToStr(_Invoice.Notes[i].SubjectCode);
@@ -2172,6 +2190,10 @@ begin
         if _ProfileXRechnung then
           break; //only one item allowed in xrechnung cii
       end;
+
+      // BT-19
+      if (_Invoice.BuyerAccountingReference <> '') then
+        AddChild('ram:ReceivableSpecifiedTradeAccountingAccount').AddChild('ram:ID').Text := _Invoice.BuyerAccountingReference;
     end;
   end;
 end;
