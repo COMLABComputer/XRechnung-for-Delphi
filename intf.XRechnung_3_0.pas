@@ -1,4 +1,4 @@
-{
+ï»¿{
 License XRechnung-for-Delphi
 
 Copyright (C) 2025 Landrix Software GmbH & Co. KG
@@ -214,8 +214,7 @@ begin
     end;
     if TXRechnungXMLHelper.SelectNode(xml,'//cbc:DocumentCurrencyCode',node) then
       _Invoice.InvoiceCurrencyCode := node.Text;
-    if TXRechnungXMLHelper.SelectNode(xml, '//cbc:AccountingCost', node) then
-      _Invoice.BuyerAccountingReference := node.Text;
+    _Invoice.BuyerAccountingReference := TXRechnungXMLHelper.SelectNodeText(xml,'//cbc:AccountingCost');
     if TXRechnungXMLHelper.SelectNode(xml,'//cbc:BuyerReference',node) then
       _Invoice.BuyerReference := node.Text;
     if TXRechnungXMLHelper.SelectNode(xml,'//cac:InvoicePeriod',node) then
@@ -926,8 +925,7 @@ begin
           end;
         end;
       end;
-      // BT-19
-      _Invoice.BuyerAccountingReference := TXRechnungXMLHelper.SelectNodeText(node2,'.//ram:ReceivableSpecifiedTradeAccountingAccount/ram:ID');
+      _Invoice.BuyerAccountingReference := TXRechnungXMLHelper.SelectNodeText(nodeApplicableHeaderTradeAgreement,'.//ram:ReceivableSpecifiedTradeAccountingAccount/ram:ID');
     end;
     Result := true;
   except
@@ -1114,11 +1112,8 @@ begin
          _Invoice.Notes[i].Content;
   xRoot.AddChild('cbc:DocumentCurrencyCode').Text := _Invoice.InvoiceCurrencyCode;
   //xRoot.AddChild('cbc:TaxCurrencyCode').Text := _Invoice.TaxCurrencyCode; //Nicht in XRechnung 3
-
-  // BT-19
   if _Invoice.BuyerAccountingReference <> '' then
-    xRoot.AddChild('cbx:AccountingCost').Text := _Invoice.BuyerAccountingReference;
-
+    xRoot.AddChild('cbc:AccountingCost').Text := _Invoice.BuyerAccountingReference;
   xRoot.AddChild('cbc:BuyerReference').Text := _Invoice.BuyerReference;
   if (_Invoice.InvoicePeriodStartDate > 100) and (_Invoice.InvoicePeriodEndDate >= _Invoice.InvoicePeriodStartDate) then
   with xRoot.AddChild('cac:InvoicePeriod') do
@@ -1622,9 +1617,9 @@ var
         with AddChild('ram:AppliedTradeAllowanceCharge') do //auch wenn DiscountOnTheGrossPrice 0 ist ausgeben
         begin
           AddChild('ram:ChargeIndicator').AddChild('udt:Indicator').Text := 'false';
-          //<ram:CalculationPercent>45</ram:CalculationPercent> nicht möglich bei UBL
+          //<ram:CalculationPercent>45</ram:CalculationPercent> nicht mï¿½glich bei UBL
           AddChild('ram:ActualAmount').Text := TXRechnungHelper.UnitPriceAmountToStr(_Invoiceline.DiscountOnTheGrossPrice);
-          //<ram:Reason>Rabatt1</ram:Reason> nicht möglich bei UBL
+          //<ram:Reason>Rabatt1</ram:Reason> nicht mï¿½glich bei UBL
         end;
       end;
       with AddChild('ram:NetPriceProductTradePrice') do
@@ -2190,10 +2185,11 @@ begin
         if _ProfileXRechnung then
           break; //only one item allowed in xrechnung cii
       end;
-
-      // BT-19
-      if (_Invoice.BuyerAccountingReference <> '') then
-        AddChild('ram:ReceivableSpecifiedTradeAccountingAccount').AddChild('ram:ID').Text := _Invoice.BuyerAccountingReference;
+      if _Invoice.BuyerAccountingReference <> '' then
+      with AddChild('ram:ReceivableSpecifiedTradeAccountingAccount') do
+      begin
+        AddChild('ram:ID').Text := _Invoice.BuyerAccountingReference;
+      end;
     end;
   end;
 end;
