@@ -1729,7 +1729,7 @@ begin
     for i := 0 to _Invoice.Notes.Count-1 do
     with AddChild('ram:IncludedNote') do
     begin
-      if _Invoice.Notes[i].ContentCode <> '' then
+      if (not _ProfileXRechnung) and (_Invoice.Notes[i].ContentCode <> '') then
         AddChild('ram:ContentCode').Text := _Invoice.Notes[i].ContentCode;
 
       AddChild('ram:Content').Text := _Invoice.Notes[i].Content;
