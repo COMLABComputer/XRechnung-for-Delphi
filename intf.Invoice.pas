@@ -256,9 +256,9 @@ type
   //Der Code 130 "Rechnungsdatenblatt" wird benutzt, um eine vom Verkäufer angegebene Kennung für ein Objekt zu referenzieren. (BT-18)
   //https://www.xrepository.de/details/urn:xoev-de:kosit:codeliste:untdid.1001_4#version
   TInvoiceAttachmentTypeCode = (iatc_None,
-                      iatc_50,
-                      iatc_130,
-                      iatc_916);//Default
+                      iatc_50,  //BT-17
+                      iatc_130, //BT-18
+                      iatc_916);//BT-122 Default
 
   //Entweder externe Referenz oder eingebettetes Objekt
   //Ob man die Daten als Base64 integriert oder separat mitliefert,
@@ -295,6 +295,27 @@ type
   public
     function AddAttachment(_AttachmentType : TInvoiceAttachmentType) : TInvoiceAttachment;
     function TryAddAttachmentByExtension(const _Filename : String; out _Attachment : TInvoiceAttachment) : Boolean;
+  end;
+
+  TInvoicePrepaidPayment = class(TObject)
+  public
+    ID : String; //BT-DEX-001
+    PaidAmount : Currency; //BT-DEX-002
+    PaidAmountCurrencyID : String; //BT-DEX-002
+    InstructionID : String; //BT-DEX-003
+  end;
+
+  TInvoicePrepaidPaymentList = class(TObjectList)
+  protected
+    function GetItem(Index: TInvoiceListItemType): TInvoicePrepaidPayment;
+    procedure SetItem(Index: TInvoiceListItemType; AItem: TInvoicePrepaidPayment);
+  public
+	  function  Extract(Item: TObject): TInvoicePrepaidPayment;
+	  function  First: TInvoicePrepaidPayment;
+	  function  Last: TInvoicePrepaidPayment;
+	  property  Items[Index: TInvoiceListItemType]: TInvoicePrepaidPayment read GetItem write SetItem; default;
+  public
+    function AddPrepaidPayment : TInvoicePrepaidPayment;
   end;
 
   TInvoiceUnitCodeHelper = class(TObject)
@@ -596,9 +617,9 @@ type
 
   TInvoiceAccountingParty = class(TObject)
   public
-    Name : String;
-    RegistrationName : String;
-    CompanyID : String; //BT-30
+    Name : String; //BT-28 Handelsname des Verkäufers wenn abweichend
+    RegistrationName : String; //BT-27 Vollständiger Name der Verkäufers/Käufers (Firma)
+    CompanyID : String; //BT-30 Handelsregisternummer
 
     Address : TInvoiceAddress;
 
@@ -621,9 +642,9 @@ type
   TInvoiceDeliveryInformation = class(TObject)
   public
     Name : String;
-    //LocationIdentifier : String; //optional Ein Bezeichner fuer den Ort, an den die Waren geliefert oder an dem die Dienstleistungen erbracht werden.
+    LocationIdentifier : String; //optional Ein Bezeichner fuer den Ort, an den die Waren geliefert oder an dem die Dienstleistungen erbracht werden.
     Address : TInvoiceAddress;
-    ActualDeliveryDate : TDate; //Lieferdatum
+    ActualDeliveryDate : TDate; //BT-72 Lieferdatum
   public
     constructor Create;
     destructor Destroy; override;
@@ -726,8 +747,9 @@ type
     SellerOrderReference : String; //BT-14 Auftragsnummer der Verkaeufers
     PurchaseOrderReference : String; //BT-13 Bestellnummer oder Vertragsnummer des Kaeufers
     ProjectReference : String; //BT-11
+    ReceiptDocumentReference : String; //BT-15
     ContractDocumentReference : String; //BT-12
-    DeliveryReceiptNumber : String; //BT-15 Lieferscheinnummer (Lieferscheindatum fehlt und wuerde nur in ZUGFeRD unterstuetzt)
+    DeliveryReceiptNumber : String; //BT-16 Lieferscheinnummer (Lieferscheindatum fehlt und wuerde nur in ZUGFeRD unterstuetzt)
     BuyerAccountingReference : String; //BT-19 Buchungsreferenz des Kaeufers für die Rechnung UBL ein Wert, CII Liste
 
     AccountingSupplierParty : TInvoiceAccountingParty;
@@ -759,6 +781,7 @@ type
 
     Attachments : TInvoiceAttachmentList; //BG-24
 
+    PrepaidPayments : TInvoicePrepaidPaymentList; //BG-DEX-09 Third Party Payment Extension NUR XRechnung UBL !!!! https://blog.seeburger.com/de/xrechnung-2-3-1-gueltig-ab-dem-01-08-2023/
     AllowanceCharges : TInvoiceAllowanceCharges; //Nachlaesse, Zuschlaege
     PrecedingInvoiceReferences : TInvoicePrecedingInvoiceReferences;
 
@@ -766,13 +789,13 @@ type
     TaxAmountSubtotals : TInvoiceTaxAmounts;
 
     LineAmount : Currency;
-    TaxExclusiveAmount : Currency;
-    TaxInclusiveAmount : Currency;
+    TaxExclusiveAmount : Currency;    //BT-109
+    TaxInclusiveAmount : Currency;    //BT-112
     AllowanceTotalAmount : Currency;
     ChargeTotalAmount : Currency;
     PrepaidAmount : Currency;         //BT-113
     PayableRoundingAmount : Currency; //BT-114
-    PayableAmount : Currency;
+    PayableAmount : Currency;         //BT-115 = BT-112 - BT-113 + BT-114 + Summe BT-DEX-002
   public
     constructor Create;
     destructor Destroy; override;
@@ -788,6 +811,7 @@ begin
   PaymentTypes := TInvoicePaymentTypeList.Create;
   InvoiceLines := TInvoiceLines.Create;
   Attachments := TInvoiceAttachmentList.Create;
+  PrepaidPayments := TInvoicePrepaidPaymentList.Create;
   AllowanceCharges := TInvoiceAllowanceCharges.Create;
   PrecedingInvoiceReferences := TInvoicePrecedingInvoiceReferences.Create;
   TaxAmountSubtotals := TInvoiceTaxAmounts.Create;
@@ -804,6 +828,7 @@ begin
   if Assigned(PaymentTypes) then begin PaymentTypes.Free; PaymentTypes := nil; end;
   if Assigned(InvoiceLines) then begin InvoiceLines.Free; InvoiceLines := nil; end;
   if Assigned(Attachments) then begin Attachments.Free; Attachments := nil; end;
+  if Assigned(PrepaidPayments) then begin PrepaidPayments.Free; PrepaidPayments := nil; end;
   if Assigned(AllowanceCharges) then begin AllowanceCharges.Free; AllowanceCharges := nil; end;
   if Assigned(PrecedingInvoiceReferences) then begin PrecedingInvoiceReferences.Free; PrecedingInvoiceReferences := nil; end;
   if Assigned(TaxAmountSubtotals) then begin TaxAmountSubtotals.Free; TaxAmountSubtotals := nil; end;
@@ -876,6 +901,29 @@ begin inherited Items[Index] := AItem; end;
 function TInvoiceAllowanceCharges.AddAllowanceCharge: TInvoiceAllowanceCharge;
 begin
   Result := TInvoiceAllowanceCharge.Create;
+  Add(Result);
+end;
+
+{ TInvoicePrepaidPaymentList }
+
+function TInvoicePrepaidPaymentList.Extract(Item: TObject): TInvoicePrepaidPayment;
+begin Result := TInvoicePrepaidPayment(inherited Extract(Item)); end;
+
+function TInvoicePrepaidPaymentList.First: TInvoicePrepaidPayment;
+begin if Count = 0 then Result := nil else Result := TInvoicePrepaidPayment(inherited First); end;
+
+function TInvoicePrepaidPaymentList.GetItem(Index: TInvoiceListItemType): TInvoicePrepaidPayment;
+begin Result := TInvoicePrepaidPayment(inherited Items[Index]); end;
+
+function TInvoicePrepaidPaymentList.Last: TInvoicePrepaidPayment;
+begin if Count = 0 then Result := nil else Result := TInvoicePrepaidPayment(inherited Last); end;
+
+procedure TInvoicePrepaidPaymentList.SetItem(Index: TInvoiceListItemType; AItem: TInvoicePrepaidPayment);
+begin inherited Items[Index] := AItem; end;
+
+function TInvoicePrepaidPaymentList.AddPrepaidPayment: TInvoicePrepaidPayment;
+begin
+  Result := TInvoicePrepaidPayment.Create;
   Add(Result);
 end;
 
