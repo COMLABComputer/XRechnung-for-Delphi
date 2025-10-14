@@ -462,9 +462,7 @@ var
     end;
     if TXRechnungXMLHelper.SelectNode(_Node,'.//ram:SpecifiedLineTradeAgreement',node2) then
     begin
-//        <ram:BuyerOrderReferencedDocument>
-//            <ram:LineID>6171175.1</ram:LineID>
-//        </ram:BuyerOrderReferencedDocument>
+      _InvoiceLine.OrderNumber :=  TXRechnungXMLHelper.SelectNodeText(node2,'.//ram:BuyerOrderReferencedDocument/ram:IssuerAssignedID');
       _InvoiceLine.OrderLineReference :=  TXRechnungXMLHelper.SelectNodeText(node2,'.//ram:BuyerOrderReferencedDocument/ram:LineID');
       if TXRechnungXMLHelper.SelectNode(node2,'.//ram:GrossPriceProductTradePrice',node3) then
       begin
@@ -871,7 +869,13 @@ begin
               _Invoice.PaymentTermCashDiscount1Percent := 0;
               _Invoice.PaymentTermCashDiscount1Base := 0;
               if TXRechnungXMLHelper.SelectNode(nodes[i],'.//ram:ApplicableTradePaymentDiscountTerms/ram:BasisPeriodMeasure',node3) then
-                _Invoice.PaymentTermCashDiscount1Days := StrToIntDef(node3.text,0)
+              begin
+                _Invoice.PaymentTermCashDiscount1Days := StrToIntDef(node3.text,0);
+                //Sonderfall beim Einlesen von ZUGFeRD, wird intern von TInvoice nicht unterstuetzt
+                //Das Basisdatum + Skontotage wird auf das Rechnungsdatum + Skontotage umgerechnet
+                if TXRechnungXMLHelper.SelectNode(nodes[i],'.//ram:ApplicableTradePaymentDiscountTerms/ram:BasisDateTime/udt:DateTimeString',node3) then
+                  _Invoice.PaymentTermCashDiscount1Days := DaysBetween(Trunc(_Invoice.InvoiceIssueDate),Trunc(TXRechnungHelper.DateFromStrUNCEFACTFormat(node3.text))+_Invoice.PaymentTermCashDiscount1Days);
+              end
               else
               if TXRechnungXMLHelper.FindNode(nodes[i],'.//ram:DueDateDateTime') then
               begin
@@ -893,7 +897,13 @@ begin
               _Invoice.PaymentTermCashDiscount2Percent := 0;
               _Invoice.PaymentTermCashDiscount2Base := 0;
               if TXRechnungXMLHelper.SelectNode(nodes[i],'.//ram:ApplicableTradePaymentDiscountTerms/ram:BasisPeriodMeasure',node3) then
-                _Invoice.PaymentTermCashDiscount2Days := StrToIntDef(node3.text,0)
+              begin
+                _Invoice.PaymentTermCashDiscount2Days := StrToIntDef(node3.text,0);
+                //Sonderfall beim Einlesen von ZUGFeRD, wird intern von TInvoice nicht unterstuetzt
+                //Das Basisdatum + Skontotage wird auf das Rechnungsdatum + Skontotage umgerechnet
+                if TXRechnungXMLHelper.SelectNode(nodes[i],'.//ram:ApplicableTradePaymentDiscountTerms/ram:BasisDateTime/udt:DateTimeString',node3) then
+                  _Invoice.PaymentTermCashDiscount2Days := DaysBetween(Trunc(_Invoice.InvoiceIssueDate),Trunc(TXRechnungHelper.DateFromStrUNCEFACTFormat(node3.text))+_Invoice.PaymentTermCashDiscount2Days);
+              end
               else
               if TXRechnungXMLHelper.FindNode(nodes[i],'.//ram:DueDateDateTime') then
               begin
@@ -1197,7 +1207,7 @@ begin
     with xRoot.AddChild('cac:AdditionalDocumentReference') do
     begin
       AddChild('cbc:ID').Text := _Invoice.Attachments[i].ID;
-      if (_Invoice.Attachments[i].TypeCode in [iatc_130,iatc_916]) then
+      if (_Invoice.Attachments[i].TypeCode in [iatc_130{,iatc_916}]) then //916 gibt derzeit Fehler bei UBL, ggf. spaeter wieder aktivieren
         AddChild('cbc:DocumentTypeCode').Text := TXRechnungHelper.InvoiceAttachmentTypeCodeToStr(_Invoice.Attachments[i].TypeCode);
       if _Invoice.Attachments[i].DocumentDescription <> '' then
         AddChild('cbc:DocumentDescription').Text := _Invoice.Attachments[i].DocumentDescription;
@@ -1667,10 +1677,15 @@ var
     end;
     with _Node.AddChild('ram:SpecifiedLineTradeAgreement') do
     begin
-      if _InvoiceLine.OrderLineReference <> '' then
+      if (_InvoiceLine.OrderLineReference <> '') or
+         ((_InvoiceLine.OrderNumber <> '') and (not _ProfileXRechnung)) then
       with AddChild('ram:BuyerOrderReferencedDocument') do
       begin
-        AddChild('ram:LineID').Text := _InvoiceLine.OrderLineReference;
+        if (not _ProfileXRechnung) then
+        if (_InvoiceLine.OrderNumber <> '') then
+          AddChild('ram:IssuerAssignedID').Text := _InvoiceLine.OrderNumber;
+        if (_InvoiceLine.OrderLineReference <> '') then
+          AddChild('ram:LineID').Text := _InvoiceLine.OrderLineReference;
       end;
       if _Invoiceline.GrossPriceAmount <> 0 then
       with AddChild('ram:GrossPriceProductTradePrice') do
@@ -1813,7 +1828,9 @@ begin
 
     with AddChild('ram:ApplicableHeaderTradeAgreement') do
     begin
-      AddChild('ram:BuyerReference').Text := _Invoice.BuyerReference;
+      if (_Invoice.BuyerReference <> '') then
+      if not ((not _ProfileXRechnung) and SameText(_Invoice.BuyerReference,'non-existent')) then
+        AddChild('ram:BuyerReference').Text := _Invoice.BuyerReference;
 
       with AddChild('ram:SellerTradeParty') do
       begin
