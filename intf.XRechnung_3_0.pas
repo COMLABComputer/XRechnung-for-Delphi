@@ -1994,17 +1994,20 @@ begin
             Attributes['schemeID'] := '0088';
             Text := _Invoice.DeliveryInformation.LocationIdentifier;
           end;
-          AddChild('ram:Name').Text := _Invoice.DeliveryInformation.Name;
+          if _Invoice.DeliveryInformation.Name <> '' then
+            AddChild('ram:Name').Text := _Invoice.DeliveryInformation.Name;
           with AddChild('ram:PostalTradeAddress') do
           begin
-            AddChild('ram:PostcodeCode').Text := _Invoice.DeliveryInformation.Address.PostalZone;
+            if _Invoice.DeliveryInformation.Address.PostalZone <> '' then
+              AddChild('ram:PostcodeCode').Text := _Invoice.DeliveryInformation.Address.PostalZone;
             if _Invoice.DeliveryInformation.Address.StreetName <> '' then
               AddChild('ram:LineOne').Text := _Invoice.DeliveryInformation.Address.StreetName;
             if _Invoice.DeliveryInformation.Address.AdditionalStreetName <> '' then
               AddChild('ram:LineTwo').Text := _Invoice.DeliveryInformation.Address.AdditionalStreetName;
             if _Invoice.DeliveryInformation.Address.AddressLine <> '' then
               AddChild('ram:LineThree').Text := _Invoice.DeliveryInformation.Address.AddressLine;
-            AddChild('ram:CityName').Text := _Invoice.DeliveryInformation.Address.City;
+            if _Invoice.DeliveryInformation.Address.City <> '' then
+              AddChild('ram:CityName').Text := _Invoice.DeliveryInformation.Address.City;
             AddChild('ram:CountryID').Text := _Invoice.DeliveryInformation.Address.CountryCode;
             if _Invoice.DeliveryInformation.Address.CountrySubentity <> '' then
               AddChild('ram:CountrySubDivisionName').Text := _Invoice.DeliveryInformation.Address.CountrySubentity;
