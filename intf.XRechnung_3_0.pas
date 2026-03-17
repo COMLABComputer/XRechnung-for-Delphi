@@ -1,7 +1,7 @@
 ﻿{
 License XRechnung-for-Delphi
 
-Copyright (C) 2025 Landrix Software GmbH & Co. KG
+Copyright (C) 2026 Landrix Software GmbH & Co. KG
 Sven Harazim, info@landrix.de
 Version 3.0.2
 
@@ -1700,9 +1700,9 @@ var
         with AddChild('ram:AppliedTradeAllowanceCharge') do //auch wenn DiscountOnTheGrossPrice 0 ist ausgeben
         begin
           AddChild('ram:ChargeIndicator').AddChild('udt:Indicator').Text := 'false';
-          //<ram:CalculationPercent>45</ram:CalculationPercent> nicht m�glich bei UBL
+          //<ram:CalculationPercent>45</ram:CalculationPercent> nicht moeglich bei UBL
           AddChild('ram:ActualAmount').Text := TXRechnungHelper.UnitPriceAmountToStr(_Invoiceline.DiscountOnTheGrossPrice);
-          //<ram:Reason>Rabatt1</ram:Reason> nicht m�glich bei UBL
+          //<ram:Reason>Rabatt1</ram:Reason> nicht moeglich bei UBL
         end;
       end;
       with AddChild('ram:NetPriceProductTradePrice') do

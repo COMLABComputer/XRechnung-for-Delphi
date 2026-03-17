@@ -1,7 +1,7 @@
 {
 License XRechnung-for-Delphi
 
-Copyright (C) 2025 Landrix Software GmbH & Co. KG
+Copyright (C) 2026 Landrix Software GmbH & Co. KG
 Sven Harazim, info@landrix.de
 Version 3.0.2
 
@@ -100,7 +100,8 @@ begin
   Result := _Result <> nil;
 end;
 
-class function TXRechnungXMLHelper.PrepareDocumentForXPathQuerys(_Xml: IXMLDocument): IXMLDOMDocument2;
+class function TXRechnungXMLHelper.PrepareDocumentForXPathQuerys(
+  _Xml: IXMLDocument): IXMLDOMDocument2;
 var
 //  hList: IDOMNodeList;
 //  i: Integer;

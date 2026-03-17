@@ -1,5 +1,5 @@
 ﻿{
-Copyright (C) 2025 Landrix Software GmbH & Co. KG
+Copyright (C) 2026 Landrix Software GmbH & Co. KG
 Sven Harazim, info@landrix.de
 Version 3.0.2
 
@@ -90,7 +90,7 @@ begin
   inv.AccountingSupplierParty.Address.City := 'Verkaeuferstadt';
   inv.AccountingSupplierParty.Address.PostalZone := '01234';
   inv.AccountingSupplierParty.Address.CountryCode := 'DE';
-  inv.AccountingSupplierParty.VATCompanyID := 'DE12345678';
+  inv.AccountingSupplierParty.VATCompanyID := 'DE123456788';
   inv.AccountingSupplierParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingSupplierParty.ContactName := 'Meier';
   inv.AccountingSupplierParty.ContactTelephone := '030 0815';
@@ -110,7 +110,7 @@ begin
   inv.AccountingCustomerParty.Address.CountryCode := 'DE';
   //bei AccountingCustomerParty nur eine VAT von beiden
   //Die EN16931 laesst ausschliesslich die UStID zu
-  inv.AccountingCustomerParty.VATCompanyID := 'DE12345678';
+  inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ContactName := 'Mueller';
   inv.AccountingCustomerParty.ContactTelephone := '030 1508';
@@ -260,7 +260,7 @@ begin
   inv.AccountingSupplierParty.Address.City := 'Verkaeuferstadt';
   inv.AccountingSupplierParty.Address.PostalZone := '01234';
   inv.AccountingSupplierParty.Address.CountryCode := 'DE';
-  inv.AccountingSupplierParty.VATCompanyID := 'DE12345678';
+  inv.AccountingSupplierParty.VATCompanyID := 'DE123456788';
   inv.AccountingSupplierParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingSupplierParty.ContactName := 'Meier';
   inv.AccountingSupplierParty.ContactTelephone := '030 0815';
@@ -280,7 +280,7 @@ begin
   inv.AccountingCustomerParty.Address.CountryCode := 'DE';
   //bei AccountingCustomerParty nur eine VAT von beiden
   //Die EN16931 laesst ausschliesslich die UStID zu
-  inv.AccountingCustomerParty.VATCompanyID := 'DE12345678';
+  inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ContactName := 'Mueller';
   inv.AccountingCustomerParty.ContactTelephone := '030 1508';
@@ -379,7 +379,7 @@ begin
   inv.AccountingSupplierParty.Address.CountrySubentity := 'Sachsen';     //optional
   inv.AccountingSupplierParty.Address.AddressLine := 'Gate 64';  //optional
   inv.AccountingSupplierParty.Address.CountryCode := 'DE';
-  inv.AccountingSupplierParty.VATCompanyID := 'DE12345678';
+  inv.AccountingSupplierParty.VATCompanyID := 'DE123456788';
   inv.AccountingSupplierParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingSupplierParty.ContactName := 'Meier';
   inv.AccountingSupplierParty.ContactTelephone := '030 0815';
@@ -399,7 +399,7 @@ begin
   inv.AccountingCustomerParty.Address.CountryCode := 'DE';
   //bei AccountingCustomerParty nur eine VAT von beiden
   //Die EN16931 laesst ausschliesslich die UStID zu
-  inv.AccountingCustomerParty.VATCompanyID := 'DE12345678';
+  inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ContactName := 'Mueller';
   inv.AccountingCustomerParty.ContactTelephone := '030 1508';
@@ -577,7 +577,6 @@ begin
     Description := 'Langtext Artikel 2'+#13#10+'Zeile 2'+#13#10+'Zeile 3'; //Laengere Beschreibung
     Quantity := 1; //Menge
     UnitCode := TInvoiceUnitCodeHelper.MapUnitOfMeasure('Stk',suc); //Mengeneinheit
-    //TODO Artikelnummer Kaeufer
     SellersItemIdentification := 'A0816'; //Artikelnummer
     TaxPercent := 19.0; //MwSt
     TaxCategory := TInvoiceDutyTaxFeeCategoryCode.idtfcc_S_StandardRate;
@@ -750,8 +749,6 @@ begin
     inv.PrepaidAmount := 100.00; //Euro angezahlt
     inv.PayableAmount := inv.PayableAmount - inv.PrepaidAmount; //Vom Zahlbetrag abziehen
   end;
-
-  //TODO PayableRoundingAmount
 end;
 
 class procedure TInvoiceTestCases.Gutschrift(inv: TInvoice);
@@ -781,7 +778,7 @@ begin
   inv.AccountingSupplierParty.Address.City := 'Verkaeuferstadt';
   inv.AccountingSupplierParty.Address.PostalZone := '01234';
   inv.AccountingSupplierParty.Address.CountryCode := 'DE';
-  inv.AccountingSupplierParty.VATCompanyID := 'DE12345678';
+  inv.AccountingSupplierParty.VATCompanyID := 'DE123456788';
   inv.AccountingSupplierParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingSupplierParty.ContactName := 'Meier';
   inv.AccountingSupplierParty.ContactTelephone := '030 0815';
@@ -803,7 +800,7 @@ begin
   inv.AccountingCustomerParty.Address.CountryCode := 'DE';
   //bei AccountingCustomerParty nur eine VAT von beiden
   //Die EN16931 laesst ausschliesslich die UStID zu
-  inv.AccountingCustomerParty.VATCompanyID := 'DE12345678';
+  inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ContactName := 'Mueller';
   inv.AccountingCustomerParty.ContactTelephone := '030 1508';
@@ -887,7 +884,7 @@ begin
   inv.AccountingSupplierParty.Address.City := 'Verkaeuferstadt';
   inv.AccountingSupplierParty.Address.PostalZone := '01234';
   inv.AccountingSupplierParty.Address.CountryCode := 'DE';
-  inv.AccountingSupplierParty.VATCompanyID := 'DE12345678';
+  inv.AccountingSupplierParty.VATCompanyID := 'DE123456788';
   inv.AccountingSupplierParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingSupplierParty.ContactName := 'Meier';
   inv.AccountingSupplierParty.ContactTelephone := '030 0815';
@@ -907,7 +904,7 @@ begin
   inv.AccountingCustomerParty.Address.City := 'Kaeuferstadt';
   inv.AccountingCustomerParty.Address.PostalZone := '05678';
   inv.AccountingCustomerParty.Address.CountryCode := 'AT';
-  inv.AccountingCustomerParty.VATCompanyID := 'AT12345678';
+  inv.AccountingCustomerParty.VATCompanyID := 'ATU12345675';
   inv.AccountingCustomerParty.ContactName := 'Mueller';
   inv.AccountingCustomerParty.ContactTelephone := '030 1508';
   inv.AccountingCustomerParty.ContactElectronicMail := 'mueller@kunde.at';
@@ -997,7 +994,7 @@ begin
   inv.AccountingSupplierParty.Address.City := 'Verkaeuferstadt';
   inv.AccountingSupplierParty.Address.PostalZone := '01234';
   inv.AccountingSupplierParty.Address.CountryCode := 'DE';
-  //inv.AccountingSupplierParty.VATCompanyID := 'DE12345678';
+  //inv.AccountingSupplierParty.VATCompanyID := 'DE123456788';
   inv.AccountingSupplierParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingSupplierParty.ContactName := 'Meier';
   inv.AccountingSupplierParty.ContactTelephone := '030 0815';
@@ -1019,7 +1016,7 @@ begin
   inv.AccountingCustomerParty.Address.CountryCode := 'DE';
   //bei AccountingCustomerParty nur eine VAT von beiden
   //Die EN16931 laesst ausschliesslich die UStID zu
-  inv.AccountingCustomerParty.VATCompanyID := 'DE12345678';
+  inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ContactName := 'Mueller';
   inv.AccountingCustomerParty.ContactTelephone := '030 1508';
@@ -1102,7 +1099,7 @@ begin
   inv.AccountingSupplierParty.Address.City := 'Verkaeuferstadt';
   inv.AccountingSupplierParty.Address.PostalZone := '01234';
   inv.AccountingSupplierParty.Address.CountryCode := 'DE';
-  inv.AccountingSupplierParty.VATCompanyID := 'DE12345678';
+  inv.AccountingSupplierParty.VATCompanyID := 'DE123456788';
   inv.AccountingSupplierParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingSupplierParty.ContactName := 'Meier';
   inv.AccountingSupplierParty.ContactTelephone := '030 0815';
@@ -1122,7 +1119,7 @@ begin
   inv.AccountingCustomerParty.Address.CountryCode := 'DE';
   //bei AccountingCustomerParty nur eine VAT von beiden
   //Die EN16931 laesst ausschliesslich die UStID zu
-  inv.AccountingCustomerParty.VATCompanyID := 'DE12345678';
+  inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
 
@@ -1206,7 +1203,7 @@ begin
   inv.AccountingSupplierParty.Address.City := 'Verkaeuferstadt';
   inv.AccountingSupplierParty.Address.PostalZone := '01234';
   inv.AccountingSupplierParty.Address.CountryCode := 'DE';
-  inv.AccountingSupplierParty.VATCompanyID := 'DE12345678';
+  inv.AccountingSupplierParty.VATCompanyID := 'DE123456788';
   inv.AccountingSupplierParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingSupplierParty.ContactName := 'Meier';
   inv.AccountingSupplierParty.ContactTelephone := '030 0815';
@@ -1226,7 +1223,7 @@ begin
   inv.AccountingCustomerParty.Address.CountryCode := 'DE';
   //bei AccountingCustomerParty nur eine VAT von beiden
   //Die EN16931 laesst ausschliesslich die UStID zu
-  inv.AccountingCustomerParty.VATCompanyID := 'DE12345678';
+  inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
 
@@ -1306,7 +1303,7 @@ begin
   inv.AccountingSupplierParty.Address.City := 'Verkaeuferstadt';
   inv.AccountingSupplierParty.Address.PostalZone := '01234';
   inv.AccountingSupplierParty.Address.CountryCode := 'DE';
-  inv.AccountingSupplierParty.VATCompanyID := 'DE12345678';
+  inv.AccountingSupplierParty.VATCompanyID := 'DE123456788';
   inv.AccountingSupplierParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingSupplierParty.ContactName := 'Meier';
   inv.AccountingSupplierParty.ContactTelephone := '030 0815';
@@ -1326,7 +1323,7 @@ begin
   inv.AccountingCustomerParty.Address.CountryCode := 'DE';
   //bei AccountingCustomerParty nur eine VAT von beiden
   //Die EN16931 laesst ausschliesslich die UStID zu
-  inv.AccountingCustomerParty.VATCompanyID := 'DE12345678';
+  inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
 
@@ -1419,7 +1416,7 @@ begin
   inv.AccountingSupplierParty.Address.City := 'Verkaeuferstadt';
   inv.AccountingSupplierParty.Address.PostalZone := '01234';
   inv.AccountingSupplierParty.Address.CountryCode := 'DE';
-  //inv.AccountingSupplierParty.VATCompanyID := 'DE12345678';
+  //inv.AccountingSupplierParty.VATCompanyID := 'DE123456788';
   inv.AccountingSupplierParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingSupplierParty.ContactName := 'Meier';
   inv.AccountingSupplierParty.ContactTelephone := '030 0815';
@@ -1444,7 +1441,7 @@ begin
   //bei AccountingCustomerParty nur eine VAT von beiden
   //Die EN16931 laesst ausschliesslich die UStID zu
   //Wenn nur die VATCompanyNumber angegeben wird, liefert die Validierung gegen ZUGFeRD einen Fehler
-  inv.AccountingCustomerParty.VATCompanyID := 'DE12345678';
+  inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
 
@@ -1539,7 +1536,7 @@ begin
   //Aber eine ist Pflicht
   //Die EN16931 laesst ausschliesslich die UStID zu
   //Bei dieser Rechnungsart muss man besonders aufpassen
-  inv.AccountingCustomerParty.VATCompanyID := 'DE12345678';
+  inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444'; //Nur bei XRechnung moeglich
   inv.AccountingCustomerParty.ContactName := 'Mueller';
   inv.AccountingCustomerParty.ContactTelephone := '030 1508';
@@ -1623,7 +1620,7 @@ begin
   inv.AccountingSupplierParty.Address.City := 'Verkaeuferstadt';
   inv.AccountingSupplierParty.Address.PostalZone := '01234';
   inv.AccountingSupplierParty.Address.CountryCode := 'DE';
-  inv.AccountingSupplierParty.VATCompanyID := 'DE12345678';
+  inv.AccountingSupplierParty.VATCompanyID := 'DE123456788';
   inv.AccountingSupplierParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingSupplierParty.ContactName := 'Meier';
   inv.AccountingSupplierParty.ContactTelephone := '030 0815';
@@ -1643,7 +1640,7 @@ begin
   inv.AccountingCustomerParty.Address.CountryCode := 'DE';
   //bei AccountingCustomerParty nur eine VAT von beiden
   //Die EN16931 laesst ausschliesslich die UStID zu
-  inv.AccountingCustomerParty.VATCompanyID := 'DE12345678';
+  inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
 
@@ -1722,7 +1719,7 @@ begin
   inv.AccountingSupplierParty.Address.City := 'Verkaeuferstadt';
   inv.AccountingSupplierParty.Address.PostalZone := '01234';
   inv.AccountingSupplierParty.Address.CountryCode := 'DE';
-  inv.AccountingSupplierParty.VATCompanyID := 'DE12345678';
+  inv.AccountingSupplierParty.VATCompanyID := 'DE123456788';
   inv.AccountingSupplierParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingSupplierParty.ContactName := 'Meier';
   inv.AccountingSupplierParty.ContactTelephone := '030 0815';
@@ -1742,7 +1739,7 @@ begin
   inv.AccountingCustomerParty.Address.CountryCode := 'DE';
   //bei AccountingCustomerParty nur eine VAT von beiden
   //Die EN16931 laesst ausschliesslich die UStID zu
-  inv.AccountingCustomerParty.VATCompanyID := 'DE12345678';
+  inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
 
@@ -1820,7 +1817,7 @@ begin
   inv.AccountingSupplierParty.Address.City := 'Verkaeuferstadt';
   inv.AccountingSupplierParty.Address.PostalZone := '01234';
   inv.AccountingSupplierParty.Address.CountryCode := 'DE';
-  inv.AccountingSupplierParty.VATCompanyID := 'DE12345678';
+  inv.AccountingSupplierParty.VATCompanyID := 'DE123456788';
   inv.AccountingSupplierParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingSupplierParty.ContactName := 'Meier';
   inv.AccountingSupplierParty.ContactTelephone := '030 0815';
@@ -1840,7 +1837,7 @@ begin
   inv.AccountingCustomerParty.Address.CountryCode := 'DE';
   //bei AccountingCustomerParty nur eine VAT von beiden
   //Die EN16931 laesst ausschliesslich die UStID zu
-  inv.AccountingCustomerParty.VATCompanyID := 'DE12345678';
+  inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
 
@@ -1913,7 +1910,7 @@ begin
   inv.AccountingSupplierParty.Address.City := 'Verkaeuferstadt';
   inv.AccountingSupplierParty.Address.PostalZone := '01234';
   inv.AccountingSupplierParty.Address.CountryCode := 'DE';
-  //inv.AccountingSupplierParty.VATCompanyID := 'DE12345678';
+  //inv.AccountingSupplierParty.VATCompanyID := 'DE123456788';
   inv.AccountingSupplierParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingSupplierParty.ContactName := 'Meier';
   inv.AccountingSupplierParty.ContactTelephone := '030 0815';
@@ -1938,7 +1935,7 @@ begin
   //bei AccountingCustomerParty nur eine VAT von beiden
   //Die EN16931 laesst ausschliesslich die UStID zu
   //Wenn nur die VATCompanyNumber angegeben wird, liefert die Validierung gegen ZUGFeRD einen Fehler
-  inv.AccountingCustomerParty.VATCompanyID := 'DE12345678';
+  inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
 
@@ -2049,7 +2046,7 @@ begin
   inv.AccountingSupplierParty.Address.City := 'Verkaeuferstadt';
   inv.AccountingSupplierParty.Address.PostalZone := '01234';
   inv.AccountingSupplierParty.Address.CountryCode := 'DE';
-  inv.AccountingSupplierParty.VATCompanyID := 'DE12345678';
+  inv.AccountingSupplierParty.VATCompanyID := 'DE123456788';
   inv.AccountingSupplierParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingSupplierParty.ContactName := 'Meier';
   inv.AccountingSupplierParty.ContactTelephone := '030 0815';
@@ -2069,7 +2066,7 @@ begin
   inv.AccountingCustomerParty.Address.CountryCode := 'DE';
   //bei AccountingCustomerParty nur eine VAT von beiden
   //Die EN16931 laesst ausschliesslich die UStID zu
-  inv.AccountingCustomerParty.VATCompanyID := 'DE12345678';
+  inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ContactName := 'Mueller';
   inv.AccountingCustomerParty.ContactTelephone := '030 1508';
@@ -2196,7 +2193,7 @@ begin
   inv.AccountingSupplierParty.Address.City := 'Verkaeuferstadt';
   inv.AccountingSupplierParty.Address.PostalZone := '01234';
   inv.AccountingSupplierParty.Address.CountryCode := 'DE';
-  //inv.AccountingSupplierParty.VATCompanyID := 'DE12345678';
+  //inv.AccountingSupplierParty.VATCompanyID := 'DE123456788';
   inv.AccountingSupplierParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingSupplierParty.ContactName := 'Meier';
   inv.AccountingSupplierParty.ContactTelephone := '030 0815';
@@ -2221,7 +2218,7 @@ begin
   //bei AccountingCustomerParty nur eine VAT von beiden
   //Die EN16931 laesst ausschliesslich die UStID zu
   //Wenn nur die VATCompanyNumber angegeben wird, liefert die Validierung gegen ZUGFeRD einen Fehler
-  inv.AccountingCustomerParty.VATCompanyID := 'DE12345678';
+  inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
 

@@ -1,5 +1,5 @@
 {
-Copyright (C) 2025 Landrix Software GmbH & Co. KG
+Copyright (C) 2026 Landrix Software GmbH & Co. KG
 Sven Harazim, info@landrix.de
 Version 3.0.2
 
@@ -16,7 +16,7 @@ interface
 
 {$DEFINE USE_EDGE_BROWSER}
 
-//https://Validool.org/
+//https://valitool.org/
 {.$DEFINE USE_Valitool}
 
 uses
@@ -98,6 +98,7 @@ type
     procedure ClearBrowser;
     procedure ShowFileInBrowser(const _Filename : String; _BrowserIdx : Integer);
     procedure ShowXMLAsHtml(_Content : String);
+    procedure ShowXMLAsPdf(_Content : String);
     procedure ShowXMLAsHtmlMustang(_Filename : String);
     procedure ShowXMLAsPdfMustang(_Filename : String);
   public
@@ -107,6 +108,7 @@ type
     ValidatorLibPath : String;
     ValidatorConfigurationPath : String;
     VisualizationLibPath : String;
+    SaxonLibPath : String;
     FopLibPath : String;
     MustangLibPath : String;
   end;
@@ -129,6 +131,7 @@ begin
   ValidatorLibPath := DistributionBasePath +'validator'+PathDelim;
   ValidatorConfigurationPath := DistributionBasePath +'validator-configuration30x'+PathDelim;
   VisualizationLibPath := DistributionBasePath +'visualization30x'+PathDelim;
+  SaxonLibPath := DistributionBasePath + 'saxon'+PathDelim;
   FopLibPath := DistributionBasePath + 'apache-fop'+PathDelim;
   MustangLibPath := DistributionBasePath + 'mustangproject'+PathDelim;
 
@@ -178,6 +181,9 @@ end;
 procedure TForm1.Button1Click(Sender: TObject);
 var
   inv : TInvoice;
+  {$IFDEF USE_Valitool}
+  cmdOutput : String;
+  {$ENDIF}
 begin
   inv := TInvoice.Create;
   TInvoiceTestCases.Kleinunternehmerregelung(inv);//Kleinunternehmerregelung
@@ -336,10 +342,14 @@ begin
   inv.Free;
 
   {$IFDEF USE_Valitool}
-  GetXRechnungValidationHelperJava
-      .SetValitoolPath(DistributionBasePath+'Valitool\VALITOOL\')
+  Memo3.Clear;
+
+  GetXRechnungValidationHelperJava.SetJavaRuntimeEnvironmentPath(JavaRuntimeEnvironmentPath)
+      .SetValitoolPath(DistributionBasePath+'valitool\')
       .SetValitoolLicense(Valitool_LICENSE)
-      .ValitoolValidateDirectory(ValidXMLExamplesPath);
+      .ValitoolValidateDirectory(ValidXMLExamplesPath,cmdoutput);
+
+  Memo3.Lines.Append(cmdoutput);
   {$ENDIF}
 end;
 
@@ -421,8 +431,6 @@ begin
       exit;
 
     case TXRechnungValidationHelper.GetXRechnungVersion(od.FileName) of
-      XRechnungVersion_230_UBL_Deprecated,
-      XRechnungVersion_230_UNCEFACT_Deprecated,
       XRechnungVersion_30x_UBL,
       XRechnungVersion_30x_UNCEFACT,
       ZUGFeRDExtendedVersion_232 :
@@ -447,8 +455,8 @@ begin
 
     {$IFDEF USE_Valitool}
     xml := TFile.ReadAllText(od.FileName,TEncoding.UTF8);
-    GetXRechnungValidationHelperJava
-        .SetValitoolPath(DistributionBasePath+'Valitool\VALITOOL\')
+    GetXRechnungValidationHelperJava.SetJavaRuntimeEnvironmentPath(JavaRuntimeEnvironmentPath)
+        .SetValitoolPath(DistributionBasePath+'valitool\')
         .SetValitoolLicense(Valitool_LICENSE)
         .ValitoolValidate(xml,cmdoutput,xmlresult,pdfresult);
 
@@ -519,7 +527,7 @@ begin
       exit;
 
     GetXRechnungValidationHelperJava.SetJavaRuntimeEnvironmentPath(JavaRuntimeEnvironmentPath)
-        .SetValidatorLibPath(ValidatorLibPath)
+        .SetSaxonLibPath(SaxonLibPath)
         .SetVisualizationLibPath(VisualizationLibPath)
         .VisualizeFile(od.FileName,cmdoutput,htmlresult);
 
@@ -548,7 +556,7 @@ begin
       exit;
 
     GetXRechnungValidationHelperJava.SetJavaRuntimeEnvironmentPath(JavaRuntimeEnvironmentPath)
-        .SetValidatorLibPath(ValidatorLibPath)
+        .SetSaxonLibPath(SaxonLibPath)
         .SetVisualizationLibPath(VisualizationLibPath)
         .SetFopLibPath(FopLibPath)
         .VisualizeFileAsPdf(od.FileName,cmdoutput,pdfresult);
@@ -665,6 +673,7 @@ begin
           if cbVisualizeWithJava.Checked then
           begin
             ShowXMLAsHtml(xml);
+            ShowXMLAsPdf(xml);
           end;
         end else
           htmlresult := '<html><body>Validation nicht erfolgreich. Siehe Verzeichnis ./Distribution/Read.Me</body></html>';
@@ -712,6 +721,7 @@ begin
           if cbVisualizeWithJava.Checked then
           begin
             ShowXMLAsHtml(xml);
+            ShowXMLAsPdf(xml);
           end;
         end else
           htmlresult := '<html><body>Validation nicht erfolgreich. Siehe Verzeichnis ./Distribution/Read.Me</body></html>';
@@ -748,7 +758,7 @@ begin
       begin
         GetXRechnungValidationHelperJava.SetJavaRuntimeEnvironmentPath(JavaRuntimeEnvironmentPath)
             .SetValidatorLibPath(ValidatorLibPath)
-            .SetValidatorConfigurationPath(DistributionBasePath+'validator-configuration-zugferd232'+PathDelim)
+            .SetValidatorConfigurationPath(DistributionBasePath+'validator-configuration-zugferd'+PathDelim)
             .ValidateFile(ExtractFilePath(Application.ExeName)+'ZUGFeRD-Extended.xml',cmdoutput,xmlresult,htmlresult);
 
 //        GetXRechnungValidationHelperJava.SetJavaRuntimeEnvironmentPath(JavaRuntimeEnvironmentPath)
@@ -793,8 +803,8 @@ begin
     {$IFDEF USE_Valitool}
     if cbValidateWithJava.Checked then
     begin
-      GetXRechnungValidationHelperJava
-          .SetValitoolPath(DistributionBasePath+'Valitool\VALITOOL\')
+      GetXRechnungValidationHelperJava.SetJavaRuntimeEnvironmentPath(JavaRuntimeEnvironmentPath)
+          .SetValitoolPath(DistributionBasePath+'valitool\')
           .SetValitoolLicense(Valitool_LICENSE)
           .ValitoolValidate(xml,cmdoutput,xmlresult,pdfresult);
 
@@ -850,7 +860,7 @@ var
   cmdoutput,htmlresult : String;
 begin
   GetXRechnungValidationHelperJava.SetJavaRuntimeEnvironmentPath(JavaRuntimeEnvironmentPath)
-      .SetValidatorLibPath(ValidatorLibPath)
+      .SetSaxonLibPath(SaxonLibPath)
       .SetVisualizationLibPath(VisualizationLibPath)
       .Visualize(_Content,cmdoutput,htmlresult);
 
@@ -867,12 +877,36 @@ begin
 {$IFEND}
 end;
 
+procedure TForm1.ShowXMLAsPdf(_Content: String);
+var
+  cmdoutput : String;
+  pdfresult : TMemoryStream;
+begin
+    GetXRechnungValidationHelperJava.SetJavaRuntimeEnvironmentPath(JavaRuntimeEnvironmentPath)
+        .SetSaxonLibPath(SaxonLibPath)
+        .SetVisualizationLibPath(VisualizationLibPath)
+        .SetFopLibPath(FopLibPath)
+        .VisualizeAsPdf(_Content,cmdoutput,pdfresult);
+
+    Memo3.Lines.Append(cmdoutput);
+
+    if pdfresult <> nil then
+    begin
+      pdfresult.SaveToFile(WebBrowserContentFilenamePdf);
+      pdfresult.Free;
+      ShowFileInBrowser(WebBrowserContentFilenamePdf,3);
+    end else
+    begin
+      TFile.WriteAllText(WebBrowserContentFilename,'<html><body>Visualisierung nicht erfolgreich. Siehe Verzeichnis ./Distribution/Read.Me</body></html>',TEncoding.UTF8);
+      ShowFileInBrowser(WebBrowserContentFilename,3);
+    end;
+end;
+
 procedure TForm1.ShowXMLAsHtmlMustang(_Filename: String);
 var
   cmdoutput,htmlresult : String;
 begin
   GetXRechnungValidationHelperJava.SetJavaRuntimeEnvironmentPath(JavaRuntimeEnvironmentPath)
-      .SetValidatorLibPath(ValidatorLibPath)
       .SetMustangprojectLibPath(MustangLibPath)
       .MustangVisualizeFile(_Filename,cmdoutput,htmlresult);
 
