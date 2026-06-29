@@ -1909,9 +1909,8 @@ begin
     for i := 0 to _Invoice.Notes.Count-1 do
     with AddChild('ram:IncludedNote') do
     begin
-      if (not _ProfileXRechnung) and (_Invoice.Notes[i].ContentCode <> '') then
+      if (_Profile in [ipZUGFeRDExtended]) and (_Invoice.Notes[i].ContentCode <> '') then
         AddChild('ram:ContentCode').Text := _Invoice.Notes[i].ContentCode;
-
       AddChild('ram:Content').Text := _Invoice.Notes[i].Content;
       if _Invoice.Notes[i].SubjectCode <> insc_None then
         AddChild('ram:SubjectCode').Text := TXRechnungHelper.InvoiceNoteSubjectCodeToStr(_Invoice.Notes[i].SubjectCode);
