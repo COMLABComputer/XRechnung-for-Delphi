@@ -12,16 +12,27 @@ You use it at your own risc.
 
 unit XRechnungUnit2TestCases;
 
+{$IFDEF FPC}
+  {$MODE DELPHIUNICODE}
+  {$H+}
+  {$codepage utf8}
+{$ENDIF}
+
 interface
 
 //skonto zugferd
-//[BR-CO-25]-Im Falle eines positiven Zahlbetrags �Amount due for payment� (BT-115) muss entweder das Element F�lligkeitsdatum �Payment due date� (BT-9) oder das Element Zahlungsbedingungen �Payment terms� (BT-20) vorhanden sein.
+//[BR-CO-25]-Im Falle eines positiven Zahlbetrags Amount due for payment (BT-115) muss entweder das Element F�lligkeitsdatum �Payment due date� (BT-9) oder das Element Zahlungsbedingungen �Payment terms� (BT-20) vorhanden sein.
 
 uses
+  {$IFDEF FPC}
+  SysUtils, Classes, StrUtils, Math,
+  intf.Invoice;
+  {$ELSE}
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes,System.IOUtils,System.Win.COMObj,System.UITypes,
   System.StrUtils,Vcl.Forms,
   intf.Invoice, System.Math;
+  {$ENDIF}
 
 type
   TInvoiceTestCases = class(TObject)
@@ -30,6 +41,11 @@ type
     InvoiceDueDate : TDate;
     InvoicePeriodStartDate : TDate;
     InvoicePeriodEndDate : TDate;
+  public
+    // Basisverzeichnis fuer die Beispiel-Anhaenge (attachment.pdf etc.).
+    // Leer => Delphi nutzt Application.ExeName, FPC nutzt ParamStr(0).
+    class var AttachmentBasePath : String;
+    class function AttachmentDir : String;
   public
     class procedure Gesamtbeispiel(inv : TInvoice; Zahlungsbedingung : Integer;
                        NachlaesseZuschlaegeVerwenden, AbschlagsrechnungAbziehen,
@@ -58,6 +74,18 @@ implementation
 
 { TInvoiceTestCases }
 
+class function TInvoiceTestCases.AttachmentDir : String;
+begin
+  if AttachmentBasePath <> '' then
+    Result := IncludeTrailingPathDelimiter(AttachmentBasePath)
+  else
+    {$IFDEF FPC}
+    Result := ExtractFilePath(ExtractFileDir(ExtractFileDir(ParamStr(0))));
+    {$ELSE}
+    Result := ExtractFilePath(ExtractFileDir(ExtractFileDir(Application.ExeName)));
+    {$ENDIF}
+end;
+
 class procedure TInvoiceTestCases.Austauschteilesteuer(inv: TInvoice);
 var
   suc : Boolean;
@@ -71,7 +99,7 @@ begin
   inv.InvoiceTypeCode := TInvoiceTypeCode.itc_CommercialInvoice; //Schlussrechnung
   inv.InvoiceCurrencyCode := 'EUR';
   inv.TaxCurrencyCode := 'EUR';
-  inv.BuyerReference := '04011000-12345-34'; //Leitweg-ID - wird vom Rechnungsempfaenger dem Rechnungsersteller zur Verfuegung gestellt
+  inv.BuyerReference := '991-01484-64'; //Leitweg-ID - wird vom Rechnungsempfaenger dem Rechnungsersteller zur Verfuegung gestellt
   with inv.Notes.AddNote do //Sollte ausgefuellt werden
   begin
     Content := 'Geschaeftsfuehrer Herr Meier - HRB 789';
@@ -100,6 +128,7 @@ begin
   //Weitere Codes auf Anfrage
   //https://www.xrepository.de/details/urn:xoev-de:kosit:codeliste:eas_4#version
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@company.com';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   inv.AccountingCustomerParty.Name := '';
   inv.AccountingCustomerParty.RegistrationName := 'Kaeufername'; //Sollte ausgefuellt werden
@@ -116,6 +145,7 @@ begin
   inv.AccountingCustomerParty.ContactTelephone := '030 1508';
   inv.AccountingCustomerParty.ContactElectronicMail := 'mueller@kunde.de';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   //Lieferdatum
   inv.DeliveryInformation.ActualDeliveryDate := TInvoiceTestCases.InvoicePeriodEndDate;
@@ -241,7 +271,7 @@ begin
   inv.InvoiceTypeCode := TInvoiceTypeCode.itc_CommercialInvoice; //Schlussrechnung
   inv.InvoiceCurrencyCode := 'EUR';
   inv.TaxCurrencyCode := 'EUR';
-  inv.BuyerReference := '04011000-12345-34'; //Leitweg-ID - wird vom Rechnungsempfaenger dem Rechnungsersteller zur Verfuegung gestellt
+  inv.BuyerReference := '991-01484-64'; //Leitweg-ID - wird vom Rechnungsempfaenger dem Rechnungsersteller zur Verfuegung gestellt
   with inv.Notes.AddNote do //Sollte ausgefuellt werden
   begin
     Content := 'Geschaeftsfuehrer Herr Meier - HRB 789';
@@ -270,6 +300,7 @@ begin
   //Weitere Codes auf Anfrage
   //https://www.xrepository.de/details/urn:xoev-de:kosit:codeliste:eas_4#version
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@company.com';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   inv.AccountingCustomerParty.Name := '';
   inv.AccountingCustomerParty.RegistrationName := 'Kaeufername'; //Sollte ausgefuellt werden
@@ -286,6 +317,7 @@ begin
   inv.AccountingCustomerParty.ContactTelephone := '030 1508';
   inv.AccountingCustomerParty.ContactElectronicMail := 'mueller@kunde.de';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   //Lieferdatum
   inv.DeliveryInformation.ActualDeliveryDate := TInvoiceTestCases.InvoicePeriodEndDate;
@@ -313,6 +345,7 @@ begin
     UnitCode := TInvoiceUnitCodeHelper.MapUnitOfMeasure('Stk',suc); //Mengeneinheit
     TaxPercent := 0.0; //MwSt
     TaxCategory := TInvoiceDutyTaxFeeCategoryCode.idtfcc_E_ExemptFromTax;
+    TaxExemptionReason := 'Differenzbesteuerung'; //!! Muss gleich TaxExemptionReason unten sein in ZUGFeRD Extented
     GrossPriceAmount := 5000; //Brutto-Einzelpreis
     DiscountOnTheGrossPrice := 0;
     NetPriceAmount := 5000; //Netto-Einzelpreis
@@ -355,7 +388,7 @@ begin
   inv.InvoiceTypeCode := TInvoiceTypeCode.itc_CommercialInvoice; //Schlussrechnung
   inv.InvoiceCurrencyCode := 'EUR';
   inv.TaxCurrencyCode := 'EUR';
-  inv.BuyerReference := '04011000-12345-34'; //Leitweg-ID - wird vom Rechnungsempfaenger dem Rechnungsersteller zur Verfuegung gestellt
+  inv.BuyerReference := '991-01484-64'; //Leitweg-ID - wird vom Rechnungsempfaenger dem Rechnungsersteller zur Verfuegung gestellt
   with inv.Notes.AddNote do //Sollte ausgefuellt werden
   begin
     Content := 'Geschaeftsfuehrer Herr Meier - HRB 789';
@@ -367,6 +400,9 @@ begin
   inv.ReceiptDocumentReference := 'RDR456789';
   inv.ContractDocumentReference := 'V876543210';
   inv.DeliveryReceiptNumber := 'Lieferschein123';
+  inv.DeliveryReceiptDate := inv.InvoiceIssueDate-5;
+  inv.DeliveryReceiptNumberExtended := 'Lieferschein123'; //Falls man es benötigt unter ZUGFeRD-Extended
+  inv.DeliveryReceiptDateExtended := inv.InvoiceIssueDate-5; //Falls man es benötigt unter ZUGFeRD-Extended
   inv.BuyerAccountingReference := '1234';
 
   inv.AccountingSupplierParty.Name := 'Verkaeufername'; //wenn von RegistrationName abweichend
@@ -389,6 +425,7 @@ begin
   //Weitere Codes auf Anfrage
   //https://www.xrepository.de/details/urn:xoev-de:kosit:codeliste:eas_4#version
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@company.com';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   inv.AccountingCustomerParty.Name := '';
   inv.AccountingCustomerParty.RegistrationName := 'Kaeufername'; //Sollte ausgefuellt werden
@@ -405,6 +442,7 @@ begin
   inv.AccountingCustomerParty.ContactTelephone := '030 1508';
   inv.AccountingCustomerParty.ContactElectronicMail := 'mueller@kunde.de';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   //Eine Gruppe von Informationselementen, die Informationen ueber die Anschrift liefern, an die
   //die Waren geliefert oder an der die Dienstleistungen erbracht werden. Die Gruppe ist nur zu
@@ -414,7 +452,7 @@ begin
   if LieferanschriftAusgeben then
   begin
     inv.DeliveryInformation.Name := 'Firma die es bekommt';
-    inv.DeliveryInformation.LocationIdentifier := '83745498753497';
+    inv.DeliveryInformation.LocationIdentifier := '4005998000007';
     inv.DeliveryInformation.Address.StreetName := 'Lieferstrasse 1';
     inv.DeliveryInformation.Address.City := 'Lieferstadt';
     inv.DeliveryInformation.Address.PostalZone := '05678';
@@ -513,32 +551,32 @@ begin
       ID := 'attachment.pdf';
       DocumentDescription := 'Eine PDF';
       Filename := 'attachment.pdf';
-      EmbedDataFromFile(ExtractFilePath(ExtractFileDir(ExtractFileDir(Application.ExeName))) +'attachment.pdf');
+      EmbedDataFromFile(AttachmentDir +'attachment.pdf');
     end;
     with inv.Attachments.AddAttachment(TInvoiceAttachmentType.iat_image_png) do
     begin
       ID := 'attachment.png';
       Filename := 'attachment.png';
-      EmbedDataFromFile(ExtractFilePath(ExtractFileDir(ExtractFileDir(Application.ExeName))) +'attachment.png');
+      EmbedDataFromFile(AttachmentDir +'attachment.png');
     end;
     with inv.Attachments.AddAttachment(TInvoiceAttachmentType.iat_image_jpeg) do
     begin
       ID := 'attachment.jpg';
       Filename := 'attachment.jpg';
-      EmbedDataFromFile(ExtractFilePath(ExtractFileDir(ExtractFileDir(Application.ExeName))) +'attachment.jpg');
+      EmbedDataFromFile(AttachmentDir +'attachment.jpg');
     end;
     with inv.Attachments.AddAttachment(TInvoiceAttachmentType.iat_text_csv) do
     begin
       ID := 'attachment.csv';
       Filename := 'attachment.csv';
-      EmbedDataFromFile(ExtractFilePath(ExtractFileDir(ExtractFileDir(Application.ExeName))) +'attachment.csv');
+      EmbedDataFromFile(AttachmentDir +'attachment.csv');
     end;
   end;
 
   with inv.InvoiceLines.AddInvoiceLine do
   begin
     ID := '001'; //Positionsnummer
-    GlobalID_EAN_GTIN := '978381582086'; //EAN
+    GlobalID_EAN_GTIN := '4006381333931'; //EAN
     //Note : String; //Hinweis
     Name := 'Kurzinfo Artikel 1'; //Kurztext
     Description := 'Langtext Artikel'+#13#10+'Zeile 2'+#13#10+'Zeile 3'; //Laengere Beschreibung
@@ -568,6 +606,7 @@ begin
       Name := 'Key2';
       Value := '123';
     end;
+    OriginTradeCountry := 'DE';
   end;
   with inv.InvoiceLines.AddInvoiceLine do
   begin
@@ -595,6 +634,7 @@ begin
     BaseQuantity := 0; //Preiseinheit 0 = wird nicht ausgegeben, entspricht default = 1
     BaseQuantityUnitCode := TInvoiceUnitCode.iuc_None; //Preiseinheit Mengeneinheit
     LineAmount := 100;
+    OriginTradeCountry := 'DE';
 
     //Nachlass zur Position generieren
     if NachlaesseZuschlaegeVerwenden then
@@ -764,7 +804,7 @@ begin
   inv.InvoiceCurrencyCode := 'EUR';
   inv.Notes.AddNote.Content := 'Notiz zur Gutschrift';
   inv.TaxCurrencyCode := 'EUR';
-  inv.BuyerReference := '04011000-12345-34'; //Leitweg-ID - wird vom Rechnungsempfaenger dem Rechnungsersteller zur Verfuegung gestellt
+  inv.BuyerReference := '991-01484-64'; //Leitweg-ID - wird vom Rechnungsempfaenger dem Rechnungsersteller zur Verfuegung gestellt
   with inv.Notes.AddNote do //Sollte ausgefuellt werden
   begin
     Content := 'Geschaeftsfuehrer Herr Meier - HRB 789';
@@ -790,6 +830,7 @@ begin
   //https://www.xrepository.de/details/urn:xoev-de:kosit:codeliste:eas_4#version
   //Pflichtangabe
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@company.com';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   inv.AccountingCustomerParty.Name := '';
   inv.AccountingCustomerParty.RegistrationName := 'Kaeufername'; //Sollte ausgefuellt werden
@@ -806,6 +847,7 @@ begin
   inv.AccountingCustomerParty.ContactTelephone := '030 1508';
   inv.AccountingCustomerParty.ContactElectronicMail := 'mueller@kunde.de';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   //Lieferdatum
   inv.DeliveryInformation.ActualDeliveryDate := TInvoiceTestCases.InvoicePeriodEndDate;
@@ -830,6 +872,7 @@ begin
     UnitCode := TInvoiceUnitCodeHelper.MapUnitOfMeasure('Stk',suc); //Mengeneinheit
     TaxPercent := 0.0; //MwSt
     TaxCategory := TInvoiceDutyTaxFeeCategoryCode.idtfcc_E_ExemptFromTax;
+    TaxExemptionReason := 'Keine Ausweisung der Umsatzsteuer, da Kleinunternehmer gemaess Paragraph 19 UStG';
     GrossPriceAmount := 500; //Brutto-Einzelpreis
     DiscountOnTheGrossPrice := 0;
     NetPriceAmount := 500; //Netto-Einzelpreis
@@ -896,6 +939,7 @@ begin
   //https://www.xrepository.de/details/urn:xoev-de:kosit:codeliste:eas_4#version
   //Pflichtangabe
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@company.com';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   inv.AccountingCustomerParty.Name := '';
   inv.AccountingCustomerParty.RegistrationName := 'Kaeufername'; //Sollte ausgefuellt werden
@@ -909,6 +953,7 @@ begin
   inv.AccountingCustomerParty.ContactTelephone := '030 1508';
   inv.AccountingCustomerParty.ContactElectronicMail := 'mueller@kunde.at';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.at'; //BT-49
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   inv.DeliveryInformation.Name := 'Firma die es bekommt';
   inv.DeliveryInformation.Address.StreetName := 'Lieferstrasse 1';
@@ -940,6 +985,7 @@ begin
     UnitCode := TInvoiceUnitCodeHelper.MapUnitOfMeasure('Stk',suc); //Mengeneinheit
     TaxPercent := 0.0; //MwSt
     TaxCategory := TInvoiceDutyTaxFeeCategoryCode.idtfcc_K_VATExemptForEEAIntracommunitySupplyOfGoodsAndServices;
+    TaxExemptionReason := 'Keine Ausweisung der Umsatzsteuer - innergemeinschaftliche Lieferung EU';
     GrossPriceAmount := 5000; //Brutto-Einzelpreis
     DiscountOnTheGrossPrice := 0;
     NetPriceAmount := 5000; //Netto-Einzelpreis
@@ -980,7 +1026,7 @@ begin
   inv.InvoiceTypeCode := TInvoiceTypeCode.itc_CommercialInvoice; //Schlussrechnung
   inv.InvoiceCurrencyCode := 'EUR';
   inv.TaxCurrencyCode := 'EUR';
-  inv.BuyerReference := '04011000-12345-34'; //Leitweg-ID - wird vom Rechnungsempfaenger dem Rechnungsersteller zur Verfuegung gestellt
+  inv.BuyerReference := '991-01484-64'; //Leitweg-ID - wird vom Rechnungsempfaenger dem Rechnungsersteller zur Verfuegung gestellt
   with inv.Notes.AddNote do //Sollte ausgefuellt werden
   begin
     Content := 'Kleinunternehmer Herr Meier';
@@ -1006,6 +1052,7 @@ begin
   //https://www.xrepository.de/details/urn:xoev-de:kosit:codeliste:eas_4#version
   //Pflichtangabe
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@company.com';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   inv.AccountingCustomerParty.Name := '';
   inv.AccountingCustomerParty.RegistrationName := 'Kaeufername'; //Sollte ausgefuellt werden
@@ -1022,6 +1069,7 @@ begin
   inv.AccountingCustomerParty.ContactTelephone := '030 1508';
   inv.AccountingCustomerParty.ContactElectronicMail := 'mueller@kunde.de';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   //Lieferdatum
   inv.DeliveryInformation.ActualDeliveryDate := TInvoiceTestCases.InvoicePeriodEndDate;
@@ -1046,6 +1094,7 @@ begin
     UnitCode := TInvoiceUnitCodeHelper.MapUnitOfMeasure('Stk',suc); //Mengeneinheit
     TaxPercent := 0.0; //MwSt
     TaxCategory := TInvoiceDutyTaxFeeCategoryCode.idtfcc_E_ExemptFromTax;
+    TaxExemptionReason := 'Keine Ausweisung der Umsatzsteuer, da Kleinunternehmer gemaess Paragraph 19 UStG'; //!! Muss gleich TaxExemptionReason unten sein in ZUGFeRD Extented
     GrossPriceAmount := 5000; //Brutto-Einzelpreis
     DiscountOnTheGrossPrice := 0;
     NetPriceAmount := 5000; //Netto-Einzelpreis
@@ -1109,6 +1158,7 @@ begin
   //Weitere Codes auf Anfrage
   //https://www.xrepository.de/details/urn:xoev-de:kosit:codeliste:eas_4#version
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@company.com';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   inv.AccountingCustomerParty.Name := '';
   inv.AccountingCustomerParty.RegistrationName := 'Kaeufername'; //Sollte ausgefuellt werden
@@ -1122,6 +1172,7 @@ begin
   inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   //Lieferdatum
   inv.DeliveryInformation.ActualDeliveryDate := TInvoiceTestCases.InvoicePeriodEndDate;
@@ -1131,8 +1182,8 @@ begin
   begin
     PaymentMeansCode := ipmc_CreditCard; //Kreditkarte
     //HINWEIS
-    //In �bereinstimmung mit den Sicherheitsstandards f�r Kartenzahlungen
-    //sollte eine Rechnung niemals eine vollst�ndige Hauptkontonummer der
+    //In Uebereinstimmung mit den Sicherheitsstandards f�r Kartenzahlungen
+    //sollte eine Rechnung niemals eine vollstaendige Hauptkontonummer der
     //Karte (BT-87) enthalten. Im Moment hat ist festgelegt, dass die
     //letzten 6 Ziffern die maximale Anzahl der Ziffern sind, die angezeigt
     //werden sollen.
@@ -1213,6 +1264,7 @@ begin
   //Weitere Codes auf Anfrage
   //https://www.xrepository.de/details/urn:xoev-de:kosit:codeliste:eas_4#version
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@company.com';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   inv.AccountingCustomerParty.Name := '';
   inv.AccountingCustomerParty.RegistrationName := 'Kaeufername'; //Sollte ausgefuellt werden
@@ -1226,6 +1278,7 @@ begin
   inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   //Lieferdatum
   inv.DeliveryInformation.ActualDeliveryDate := TInvoiceTestCases.InvoicePeriodEndDate;
@@ -1313,6 +1366,7 @@ begin
   //Weitere Codes auf Anfrage
   //https://www.xrepository.de/details/urn:xoev-de:kosit:codeliste:eas_4#version
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@company.com';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   inv.AccountingCustomerParty.Name := '';
   inv.AccountingCustomerParty.RegistrationName := 'Kaeufername'; //Sollte ausgefuellt werden
@@ -1326,6 +1380,7 @@ begin
   inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   //Lieferdatum
   inv.DeliveryInformation.ActualDeliveryDate := inv.InvoicePeriodEndDate;
@@ -1426,6 +1481,7 @@ begin
   //Weitere Codes auf Anfrage
   //https://www.xrepository.de/details/urn:xoev-de:kosit:codeliste:eas_4#version
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@company.com';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
   //Um valide Rechnung zu erzeugen, weil keine UStID vorhanden ist
   if (inv.AccountingSupplierParty.VATCompanyID = '') and
      (inv.AccountingSupplierParty.CompanyID = '') then
@@ -1444,6 +1500,7 @@ begin
   inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   //Lieferdatum
   inv.DeliveryInformation.ActualDeliveryDate := TInvoiceTestCases.InvoicePeriodEndDate;
@@ -1524,6 +1581,7 @@ begin
   //https://www.xrepository.de/details/urn:xoev-de:kosit:codeliste:eas_4#version
   //Pflichtangabe
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@company.com';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   inv.AccountingCustomerParty.Name := '';
   inv.AccountingCustomerParty.RegistrationName := 'Kaeufername'; //Sollte ausgefuellt werden
@@ -1542,6 +1600,7 @@ begin
   inv.AccountingCustomerParty.ContactTelephone := '030 1508';
   inv.AccountingCustomerParty.ContactElectronicMail := 'mueller@kunde.de';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   //Lieferdatum
   inv.DeliveryInformation.ActualDeliveryDate := TInvoiceTestCases.InvoicePeriodEndDate;
@@ -1567,6 +1626,7 @@ begin
     SellersItemIdentification := 'A0815'; //Artikelnummer
     TaxPercent := 0.0; //MwSt
     TaxCategory := TInvoiceDutyTaxFeeCategoryCode.idtfcc_AE_VATReverseCharge;
+    TaxExemptionReason := 'Hiermit erlaube ich mir folgende Rechnung fuer Bauleistungen zu stellen. Die Umsatzsteuer fuer diese Leistung schuldet nach Paragraph 13b UStG der Leistungsempfaenger.'; //!! Muss gleich TaxExemptionReason unten sein in ZUGFeRD Extented
     GrossPriceAmount := 50; //Brutto-Einzelpreis
     DiscountOnTheGrossPrice := 0;
     NetPriceAmount := 50; //Netto-Einzelpreis
@@ -1630,6 +1690,7 @@ begin
   //Weitere Codes auf Anfrage
   //https://www.xrepository.de/details/urn:xoev-de:kosit:codeliste:eas_4#version
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@company.com';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   inv.AccountingCustomerParty.Name := '';
   inv.AccountingCustomerParty.RegistrationName := 'Kaeufername'; //Sollte ausgefuellt werden
@@ -1643,6 +1704,7 @@ begin
   inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   //Lieferdatum
   inv.DeliveryInformation.ActualDeliveryDate := TInvoiceTestCases.InvoicePeriodEndDate;
@@ -1729,6 +1791,7 @@ begin
   //Weitere Codes auf Anfrage
   //https://www.xrepository.de/details/urn:xoev-de:kosit:codeliste:eas_4#version
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@company.com';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   inv.AccountingCustomerParty.Name := '';
   inv.AccountingCustomerParty.RegistrationName := 'Kaeufername'; //Sollte ausgefuellt werden
@@ -1742,6 +1805,7 @@ begin
   inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   //Lieferdatum
   inv.DeliveryInformation.ActualDeliveryDate := TInvoiceTestCases.InvoicePeriodEndDate;
@@ -1827,6 +1891,7 @@ begin
   //Weitere Codes auf Anfrage
   //https://www.xrepository.de/details/urn:xoev-de:kosit:codeliste:eas_4#version
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@company.com';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   inv.AccountingCustomerParty.Name := '';
   inv.AccountingCustomerParty.RegistrationName := 'Kaeufername'; //Sollte ausgefuellt werden
@@ -1840,6 +1905,7 @@ begin
   inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   //Lieferdatum
   inv.DeliveryInformation.ActualDeliveryDate := TInvoiceTestCases.InvoicePeriodEndDate;
@@ -1920,6 +1986,7 @@ begin
   //Weitere Codes auf Anfrage
   //https://www.xrepository.de/details/urn:xoev-de:kosit:codeliste:eas_4#version
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@company.com';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
   //Um valide Rechnung zu erzeugen, weil keine UStID vorhanden ist
   if (inv.AccountingSupplierParty.VATCompanyID = '') and
      (inv.AccountingSupplierParty.CompanyID = '') then
@@ -1938,6 +2005,7 @@ begin
   inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   //Lieferdatum
   inv.DeliveryInformation.ActualDeliveryDate := TInvoiceTestCases.InvoicePeriodEndDate;
@@ -2032,7 +2100,7 @@ begin
   inv.InvoiceTypeCode := TInvoiceTypeCode.itc_CommercialInvoice; //Schlussrechnung
   inv.InvoiceCurrencyCode := 'EUR';
   inv.TaxCurrencyCode := 'EUR';
-  inv.BuyerReference := '04011000-12345-34'; //Leitweg-ID - wird vom Rechnungsempfaenger dem Rechnungsersteller zur Verfuegung gestellt
+  inv.BuyerReference := '991-01484-64'; //Leitweg-ID - wird vom Rechnungsempfaenger dem Rechnungsersteller zur Verfuegung gestellt
   with inv.Notes.AddNote do //Sollte ausgefuellt werden
   begin
     Content := 'Geschaeftsfuehrer Herr Meier - HRB 789';
@@ -2056,6 +2124,7 @@ begin
   //Weitere Codes auf Anfrage
   //https://www.xrepository.de/details/urn:xoev-de:kosit:codeliste:eas_4#version
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@company.com';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   inv.AccountingCustomerParty.Name := '';
   inv.AccountingCustomerParty.RegistrationName := 'Kaeufername'; //Sollte ausgefuellt werden
@@ -2072,6 +2141,7 @@ begin
   inv.AccountingCustomerParty.ContactTelephone := '030 1508';
   inv.AccountingCustomerParty.ContactElectronicMail := 'mueller@kunde.de';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   //Lieferdatum
   inv.DeliveryInformation.ActualDeliveryDate := TInvoiceTestCases.InvoicePeriodEndDate;
@@ -2203,6 +2273,7 @@ begin
   //Weitere Codes auf Anfrage
   //https://www.xrepository.de/details/urn:xoev-de:kosit:codeliste:eas_4#version
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@company.com';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
   //Um valide Rechnung zu erzeugen, weil keine UStID vorhanden ist
   if (inv.AccountingSupplierParty.VATCompanyID = '') and
      (inv.AccountingSupplierParty.CompanyID = '') then
@@ -2221,6 +2292,7 @@ begin
   inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   //Lieferdatum
   inv.DeliveryInformation.ActualDeliveryDate := TInvoiceTestCases.InvoicePeriodEndDate;
@@ -2266,8 +2338,8 @@ end;
 
 initialization
 
-  TInvoiceTestCases.InvoiceIssueDate := EncodeDate(2024,12,5);
-  TInvoiceTestCases.InvoiceDueDate := EncodeDate(2024,12,5)+30;
+  TInvoiceTestCases.InvoiceIssueDate := EncodeDate(2026,8,30);
+  TInvoiceTestCases.InvoiceDueDate := EncodeDate(2026,8,30)+30;
   TInvoiceTestCases.InvoicePeriodStartDate := TInvoiceTestCases.InvoiceIssueDate-30;
   TInvoiceTestCases.InvoicePeriodEndDate := TInvoiceTestCases.InvoiceIssueDate-1;
 end.

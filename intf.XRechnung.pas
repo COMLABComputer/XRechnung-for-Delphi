@@ -21,6 +21,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 unit intf.XRechnung;
 
+{$IFDEF FPC}
+  {$MODE DELPHIUNICODE}
+  {$H+}
+  {$codepage utf8}
+{$ENDIF}
+
 interface
 
 //setzt ZUGFeRD-for-Delphi voraus
@@ -28,9 +34,15 @@ interface
 {.$DEFINE ZUGFeRD_Support}
 
 uses
+  {$IFDEF FPC}
+  SysUtils,Classes,Types,Math
+  ,StrUtils,DateUtils,Contnrs
+  ,intf.XRechnungXmlShim
+  {$ELSE}
   System.SysUtils,System.Classes,System.Types,System.Math
   ,System.StrUtils,System.DateUtils,System.Contnrs
   ,Xml.XMLDoc,Xml.XMLIntf
+  {$ENDIF}
   {$IFDEF ZUGFeRD_Support}
   ,intf.ZUGFeRDInvoiceDescriptor
   ,intf.ZUGFeRDCurrencyCodes
@@ -92,10 +104,12 @@ type
   TXRechnungVersion = (XRechnungVersion_Unknown,
                        XRechnungVersion_30x_UBL,
                        XRechnungVersion_30x_UNCEFACT,
-                       ZUGFeRDExtendedVersion_232,
-                       XRechnungVersion_ReadingSupport_ZUGFeRDFacturX,
+                       ZUGFeRDEN16931Version_250,
+                       ZUGFeRDExtendedVersion_250,
+                       PeppolBillingVersion_30,
                        ZUGFeRDExtendedVersion_1_NotSupported);
 
+  {$IFNDEF FPC}
   TXRechnungValidationHelper = class(TObject)
   public
     class function GetXRechnungVersion(const _Filename : String) : TXRechnungVersion; overload;
@@ -106,6 +120,7 @@ type
     //First thoughts on the topic
     //class function Validate(_XSDFilename, _XmlFilename: String) : Boolean;
   end;
+  {$ENDIF}
 
   {$IFDEF ZUGFeRD_Support}
   TZUGFeRDAdditionalContent = class
@@ -125,7 +140,9 @@ type
   TXRechnungInvoiceAdapter = class
   private
     class procedure SaveDocument(_Invoice: TInvoice;_Version : TXRechnungVersion; _Xml : IXMLDocument);
+    {$IFNDEF FPC}
     class function  LoadFromXMLDocument(_Invoice: TInvoice; _XmlDocument: IXMLDocument; out _Error : String {$IFDEF ZUGFeRD_Support};_AdditionalContent : TZUGFeRDAdditionalContent = nil{$ENDIF}) : Boolean;
+    {$ENDIF}
   public const
     ccOK                       = 0;
     ccNoPaymentsCount          = 1;
@@ -136,6 +153,7 @@ type
     ccNoBT31BT30               = 6;
     ccNoBT31BT32               = 7;
     ccPrepaidPaymentNotSupported = 8;
+    ccNoEMUnderPeppol          = 9;
   public
     class function ConsistencyCheck(_Invoice : TInvoice; _Version : TXRechnungVersion) : Boolean; overload;
     class function ConsistencyCheck(_Invoice : TInvoice; _Version : TXRechnungVersion; out _ErrorCode : Integer) : Boolean; overload;
@@ -145,9 +163,11 @@ type
     class procedure SaveToFile(_Invoice : TInvoice; _Version : TXRechnungVersion; const _Filename : String);
     class procedure SaveToXMLStr(_Invoice : TInvoice; _Version : TXRechnungVersion; out _XML : String);
 
+    {$IFNDEF FPC}
     class function  LoadFromStream(_Invoice : TInvoice; _Stream : TStream; out _Error : String {$IFDEF ZUGFeRD_Support};_AdditionalContent : TZUGFeRDAdditionalContent = nil{$ENDIF}) : Boolean;
     class function  LoadFromFile(_Invoice : TInvoice; const _Filename : String; out _Error : String {$IFDEF ZUGFeRD_Support};_AdditionalContent : TZUGFeRDAdditionalContent = nil{$ENDIF}) : Boolean;
     class function  LoadFromXMLStr(_Invoice : TInvoice; const _XML : String; out _Error : String {$IFDEF ZUGFeRD_Support};_AdditionalContent : TZUGFeRDAdditionalContent = nil{$ENDIF}) : Boolean;
+    {$ENDIF}
   end;
 
 const
@@ -260,7 +280,7 @@ begin
     exit;
   if _Filename = '' then
     exit;
-  if not System.SysUtils.DirectoryExists(ExtractFilePath(_Filename)) then
+  if not DirectoryExists(ExtractFilePath(_Filename)) then
     exit;
 
   xml := NewXMLDocument;
@@ -269,6 +289,9 @@ begin
     TXRechnungInvoiceAdapter.SaveDocument(_Invoice,_Version,xml);
     xml.SaveToXML(xmlstring);
     hstrl.Text := xmlstring;
+    if hstrl.Count > 0 then
+    if SameText(hstrl[0],'<?xml version="1.0"?>') then
+      hstrl[0] := '<?xml version="1.0" encoding="UTF-8"?>';
     hstrl.WriteBOM := false;
     hstrl.SaveToFile(_Filename,TEncoding.UTF8);
   finally
@@ -295,7 +318,7 @@ begin
 
   //Mindestens eine Zahlungsanweisung notwendig (bei ZUGFeRD nur im Profil EXTENDED)
   if (_Invoice.PaymentTypes.Count = 0) and
-     (_Version <> TXRechnungVersion.XRechnungVersion_ReadingSupport_ZUGFeRDFacturX) then
+     (_Version <> TXRechnungVersion.ZUGFeRDEN16931Version_250) then
   begin
     _ErrorCode := ccNoPaymentsCount;
     Result := false;
@@ -379,6 +402,17 @@ begin
     exit;
   end;
 
+  if (_Version = PeppolBillingVersion_30) then
+  if ((_Invoice.AccountingSupplierParty.ElectronicAddressSellerBuyer <> '') and
+      (_Invoice.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID = 'EM') or
+      (_Invoice.AccountingCustomerParty.ElectronicAddressSellerBuyer <> '') and
+      (_Invoice.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID = 'EM')) then
+  begin
+    _ErrorCode := ccNoEMUnderPeppol;
+    Result := false;
+    exit;
+  end;
+
   //Beide Steuernummern beim Kaeufer nicht vorgesehen
 //  if (_Invoice.AccountingCustomerParty.VATCompanyID <> '') and
 //     (_Invoice.AccountingCustomerParty.VATCompanyNumber <> '') then
@@ -407,6 +441,7 @@ begin
   end;
 end;
 
+{$IFNDEF FPC}
 class function TXRechnungInvoiceAdapter.LoadFromFile(_Invoice: TInvoice;
   const _Filename: String; out _Error : String
   {$IFDEF ZUGFeRD_Support};_AdditionalContent : TZUGFeRDAdditionalContent = nil{$ENDIF}) : Boolean;
@@ -418,7 +453,7 @@ begin
     exit;
   if _Filename = '' then
     exit;
-  if not System.SysUtils.FileExists(_Filename) then
+  if not FileExists(_Filename) then
     exit;
 
   xml := TXMLDocument.Create(nil);
@@ -465,12 +500,13 @@ begin
   case TXRechnungValidationHelper.GetXRechnungVersion(_XmlDocument) of
     XRechnungVersion_30x_UBL      : Result := TXRechnungInvoiceAdapter301.LoadDocumentUBL(_Invoice,_XmlDocument,_Error);
     XRechnungVersion_30x_UNCEFACT : Result := TXRechnungInvoiceAdapter301.LoadDocumentUNCEFACT(_Invoice,_XmlDocument,_Error);
+    PeppolBillingVersion_30       : Result := TXRechnungInvoiceAdapter301.LoadDocumentUBL(_Invoice,_XmlDocument,_Error);
     {$IFNDEF ZUGFeRD_Support}
-    ZUGFeRDExtendedVersion_232 : Result := TXRechnungInvoiceAdapter301.LoadDocumentUNCEFACT(_Invoice,_XmlDocument,_Error);
-    XRechnungVersion_ReadingSupport_ZUGFeRDFacturX : Result := TXRechnungInvoiceAdapter301.LoadDocumentUNCEFACT(_Invoice,_XmlDocument,_Error);
+    ZUGFeRDEN16931Version_250 : Result := TXRechnungInvoiceAdapter301.LoadDocumentUNCEFACT(_Invoice,_XmlDocument,_Error);
+    ZUGFeRDExtendedVersion_250 : Result := TXRechnungInvoiceAdapter301.LoadDocumentUNCEFACT(_Invoice,_XmlDocument,_Error);
     {$ELSE}
-    XRechnungVersion_ReadingSupport_ZUGFeRDFacturX,
-    ZUGFeRDExtendedVersion_232,
+    ZUGFeRDEN16931Version_250,
+    ZUGFeRDExtendedVersion_250,
     ZUGFeRDExtendedVersion_1_NotSupported : Result := TZUGFeRDInvoiceAdapter.LoadFromXMLDocument(_Invoice,_XmlDocument,_Error,_AdditionalContent);
     {$ENDIF}
     else exit;
@@ -497,15 +533,18 @@ begin
     xml := nil;
   end;
 end;
+{$ENDIF}
 
 class procedure TXRechnungInvoiceAdapter.SaveDocument(_Invoice: TInvoice;
   _Version : TXRechnungVersion; _Xml: IXMLDocument);
 begin
   case _Version of
-    XRechnungVersion_30x_UBL : TXRechnungInvoiceAdapter301.SaveDocumentUBL(_Invoice,_Xml);
-    XRechnungVersion_30x_UNCEFACT : TXRechnungInvoiceAdapter301.SaveDocumentUNCEFACT(_Invoice,_Xml,true);
-    ZUGFeRDExtendedVersion_232 : TXRechnungInvoiceAdapter301.SaveDocumentUNCEFACT(_Invoice,_Xml,false);
-    else raise Exception.Create('XRechnung - wrong version');
+    XRechnungVersion_30x_UBL : TXRechnungInvoiceAdapter301.SaveDocumentUBL(_Invoice,_Xml,ipXRechnung);
+    XRechnungVersion_30x_UNCEFACT : TXRechnungInvoiceAdapter301.SaveDocumentUNCEFACT(_Invoice,_Xml,ipXRechnung);
+    ZUGFeRDEN16931Version_250 : TXRechnungInvoiceAdapter301.SaveDocumentUNCEFACT(_Invoice,_Xml,ipZUGFeRDEN16931);
+    ZUGFeRDExtendedVersion_250 : TXRechnungInvoiceAdapter301.SaveDocumentUNCEFACT(_Invoice,_Xml,ipZUGFeRDExtended);
+    PeppolBillingVersion_30 : TXRechnungInvoiceAdapter301.SaveDocumentUBL(_Invoice,_Xml,ipPeppol);
+    else raise Exception.Create('Unkown version');
   end;
 end;
 
@@ -523,7 +562,7 @@ end;
 class function TXRechnungHelper.AmountToStr(
   _Val: Currency): String;
 begin
-  Result := System.StrUtils.ReplaceText(Format('%.2f',[_Val]),',','.');
+  Result := ReplaceText(Format('%.2f',[_Val]),',','.');
 end;
 
 class function TXRechnungHelper.UnitPriceAmountFromStr(
@@ -546,9 +585,9 @@ var
 begin
   lRounded := RoundTo(_Val,-2);
   if _Val = lRounded then
-    Result := System.StrUtils.ReplaceText(Format('%.2f',[_Val]),',','.')
+    Result := ReplaceText(Format('%.2f',[_Val]),',','.')
   else
-    Result := System.StrUtils.ReplaceText(Format('%.4f',[_Val]),',','.');
+    Result := ReplaceText(Format('%.4f',[_Val]),',','.');
 end;
 
 class function TXRechnungHelper.DateFromStrUBLFormat(const _Val : String) : TDateTime;
@@ -593,7 +632,7 @@ class function TXRechnungHelper.FloatToStr(
 begin
   if _DecimalPlaces < 0 then
     _DecimalPlaces := 0;
-  Result := System.StrUtils.ReplaceText(Format('%.'+IntToStr(_DecimalPlaces)+'f',[_Val]),',','.');
+  Result := ReplaceText(Format('%.'+IntToStr(_DecimalPlaces)+'f',[_Val]),',','.');
 end;
 
 class function TXRechnungHelper.InvoiceAllowanceOrChargeIdentCodeFromStr(
@@ -1456,7 +1495,7 @@ end;
 
 class function TXRechnungHelper.PercentageToStr(_Val: double): String;
 begin
-  Result := System.StrUtils.ReplaceText(Format('%.2f',[_Val]),',','.');
+  Result := ReplaceText(Format('%.2f',[_Val]),',','.');
 end;
 
 class function TXRechnungHelper.QuantityFromStr(_Val: String): double;
@@ -1470,7 +1509,7 @@ end;
 
 class function TXRechnungHelper.QuantityToStr(_Val: double): String;
 begin
-  Result := System.StrUtils.ReplaceText(Format('%.4f',[_Val]),',','.');
+  Result := ReplaceText(Format('%.4f',[_Val]),',','.');
 end;
 
 class procedure TXRechnungHelper.ReadPaymentTerms(_Invoice: TInvoice;
@@ -1557,6 +1596,7 @@ begin
   end;
 end;
 
+{$IFNDEF FPC}
 { TXRechnungValidationHelper }
 
 class function TXRechnungValidationHelper.GetXRechnungVersion(
@@ -1578,7 +1618,10 @@ begin
             TXRechnungXMLHelper.FindChild(_XML.DocumentElement,'CustomizationID',node)) then
       exit;
     if Pos('xrechnung_3.0',AnsiLowerCase(node.Text))>0 then
-      Result := XRechnungVersion_30x_UBL;
+      Result := XRechnungVersion_30x_UBL
+    else
+    if Pos('billing:3.0',AnsiLowerCase(node.Text))>0 then
+      Result := PeppolBillingVersion_30;
   end else
   if (SameText(_XML.DocumentElement.NodeName,'CrossIndustryInvoice') or
       SameText(_XML.DocumentElement.NodeName,'rsm:CrossIndustryInvoice')) then
@@ -1594,10 +1637,10 @@ begin
       Result := XRechnungVersion_30x_UNCEFACT
     else
     if SameText(node.Text,'urn:cen.eu:en16931:2017#conformant#urn:factur-x.eu:1p0:extended') then
-      Result := ZUGFeRDExtendedVersion_232
+      Result := ZUGFeRDExtendedVersion_250
     else
     if Pos('urn:cen.eu:en16931:2017',AnsiLowerCase(node.Text))>0 then
-      Result := XRechnungVersion_ReadingSupport_ZUGFeRDFacturX;
+      Result := ZUGFeRDEN16931Version_250;
   end else
   if (SameText(_XML.DocumentElement.NodeName,'CrossIndustryDocument') or
       SameText(_XML.DocumentElement.NodeName,'rsm:CrossIndustryDocument')) then
@@ -1719,6 +1762,7 @@ end;
 //    FXMLDocument:= nil;
 //  end;
 //end;
+{$ENDIF}
 
 {$IFDEF ZUGFeRD_Support}
 class function TZUGFeRDInvoiceAdapter.LoadFromStream(_Invoice : TInvoice;
@@ -1750,7 +1794,7 @@ begin
     exit;
   if _Filename = '' then
     exit;
-  if not System.SysUtils.FileExists(_Filename) then
+  if not FileExists(_Filename) then
     exit;
 
   stream := TFileStream.Create(_Filename,fmOpenRead or fmShareDenyNone);

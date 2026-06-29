@@ -21,11 +21,21 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 unit intf.Invoice;
 
+{$IFDEF FPC}
+  {$MODE DELPHIUNICODE}
+  {$H+}
+  {$codepage utf8}
+{$ENDIF}
+
 interface
 
 uses
+  {$IFDEF FPC}
+  SysUtils,Classes,Types,Contnrs,base64
+  {$ELSE}
   System.SysUtils,System.Classes,System.Types,System.Contnrs
   ,System.NetEncoding
+  {$ENDIF}
   ;
 
 type
@@ -34,11 +44,15 @@ type
     NON_EXISTENT = 'non-existent';
   end;
 
+  {$IFDEF FPC}
+  TInvoiceListItemType = NativeInt;
+  {$ELSE}
   {$IF CompilerVersion >= 36.0}
   TInvoiceListItemType = NativeInt;
   {$ELSE}
   TInvoiceListItemType = Integer;
   {$IFEND}
+  {$ENDIF}
   TInvoiceTypeCode = (
     itc_None,
 
@@ -549,6 +563,7 @@ type
     BuyerAccountingReference : String; //BT-133 Buchungsreferenz des Kaeufers für die Rechnungsposition, vom Kaeufer vergeben
     TaxPercent : double; //BG-30, BT-152 MwSt
     TaxCategory : TInvoiceDutyTaxFeeCategoryCode; //BG-30, BT-151 MwSt-Einordnung
+    TaxExemptionReason : String;
     // BG-29 Detailinformationen zum (Artikel-)-Preis
     GrossPriceAmount : Currency; //BG-29, BT-148 Brutto-Einzelpreis
     DiscountOnTheGrossPrice : Currency; //BG-29, BT-147 Rabatt auf den Bruttopreis ergibt Nettopreis, nur ein Rabatt moeglich wegen UBL, obwohl CII mehrere erlaubt
@@ -559,8 +574,8 @@ type
     AllowanceCharges : TInvoiceAllowanceCharges; // BG-27 (BT-136..BT-140) und BG-28 (BT-141..BT-145)
     InvoiceLinePeriodStartDate : TDate; //BG-26, BT-134 Leistungszeitraum Beginn
     InvoiceLinePeriodEndDate : TDate; //BG-26, BT-135 Leistungszeitraum Ende
-    //BG-31, BT-158 fehlt , "Kennung der Artikelklassifizierung", (0..n)
-    //BG-31, BT-159 fehlt, "Artikelherkunftsland"
+    //BG-31, BT-158 fehlt , DesignatedProductClassification "Kennung der Artikelklassifizierung", (0..n)
+    OriginTradeCountry : String; //BG-31, BT-159 Artikelherkunftsland z.B. DE
     ItemAttributes : TInvoiceLineItemAttributes; //BG-31:BG-32 (BT-160..BT-161)
 
     // Extension XRechnung
@@ -627,7 +642,9 @@ type
 
     Address : TInvoiceAddress;
 
-    IdentifierSellerBuyer : String; //BT-29 Kreditor-Nr AccountingSupplierParty / Debitor-Nr AccountingCustomerParty
+    IdentifierSellerBuyer : String; //BT-29 Kreditor-Nr AccountingSupplierParty / BT-46 Debitor-Nr AccountingCustomerParty
+    GlobalIdentifierSellerBuyer : String; //BT-29-0, BT-46-0, optional nur CII
+    GlobalIdentifierSellerBuyerSchemeID : String; //BT-29-1, BT-46-1, optional nur CII, Werte 0021 : SWIFT, 0088 : EAN, 0060 : DUNS, 0177 : ODETTE
     BankAssignedCreditorIdentifier : String; //Glaeubiger-ID (BT-90)
 
     VATCompanyID : String;   //BT-31 UStID
@@ -638,6 +655,7 @@ type
     ContactElectronicMail : String;
     AdditionalLegalInformationSeller : String; //BT-33 Weitere rechtliche Informationen zum Verkaeufer
     ElectronicAddressSellerBuyer : String; //BT-34, BT-49 Pflicht
+    ElectronicAddressSellerBuyerSchemeID : String; //EM E-Mail (nicht bei Peppol https://docs.peppol.eu/poacc/billing/3.0/codelist/eas/), 9930 Peppol-ID, Pflicht
   public
     constructor Create;
     destructor Destroy; override;
@@ -645,8 +663,9 @@ type
 
   TInvoiceDeliveryInformation = class(TObject)
   public
-    Name : String;
-    LocationIdentifier : String; //optional Ein Bezeichner fuer den Ort, an den die Waren geliefert oder an dem die Dienstleistungen erbracht werden.
+    Name : String; //BT-70
+    LocationIdentifier : String; //BT-71-0 CII, BT-71 UBL, optional Ein Bezeichner fuer den Ort, an den die Waren geliefert oder an dem die Dienstleistungen erbracht werden.
+    LocationIdentifierSchemeID : String; //BT-71-0 CII, BT-71 UBL, optional Schema des LocationIdentifier, Standard 0088 (GLN nach ISO/IEC 6523), Werte 0021 : SWIFT, 0088 : EAN, 0060 : DUNS, 0177 : ODETTE
     Address : TInvoiceAddress;
     ActualDeliveryDate : TDate; //BT-72 Lieferdatum
   public
@@ -737,6 +756,7 @@ type
 
   TInvoice = class(TObject)
   public
+    ProfileID : String; //BT-23 //Identifiziert den Geschäftsprozesskontext, in dem die Transaktion erscheint, damit der Käufer die Rechnung angemessen bearbeiten kann.
     InvoiceNumber : String;  //BT-1 Rechnungsnummer
     InvoiceIssueDate : TDate; //BT-2 Rechnungsdatum
     InvoiceDueDate : TDate; //BT-9 Faelligkeitsdatum
@@ -753,7 +773,10 @@ type
     ProjectReference : String; //BT-11
     ReceiptDocumentReference : String; //BT-15
     ContractDocumentReference : String; //BT-12
-    DeliveryReceiptNumber : String; //BT-16 Lieferscheinnummer (Lieferscheindatum fehlt und wuerde nur in ZUGFeRD unterstuetzt)
+    DeliveryReceiptNumber : String; //BT-16 Lieferscheinnummer XRechnung CII, UBL
+    DeliveryReceiptDate : TDate;    //BT-X-200 Lieferscheindatum ZUGFeRD-CII, XRechnung CII u UBL nicht unterstuetzt
+    DeliveryReceiptNumberExtended : String; //BT-X-202 Lieferscheinnummer ZUGFeRD-CII-Extended, Falls man es benötigt
+    DeliveryReceiptDateExtended : TDate;    //BT-X-203 Lieferscheindatum ZUGFeRD-CII-Extended, Falls man es benötigt
     BuyerAccountingReference : String; //BT-19 Buchungsreferenz des Kaeufers für die Rechnung UBL ein Wert, CII Liste
 
     AccountingSupplierParty : TInvoiceAccountingParty;
@@ -795,8 +818,8 @@ type
     LineAmount : Currency;            //BT-106
     TaxExclusiveAmount : Currency;    //BT-109
     TaxInclusiveAmount : Currency;    //BT-112
-    AllowanceTotalAmount : Currency;
-    ChargeTotalAmount : Currency;
+    AllowanceTotalAmount : Currency;  //BT-107
+    ChargeTotalAmount : Currency;     //BT-108
     PrepaidAmount : Currency;         //BT-113
     PayableRoundingAmount : Currency; //BT-114
     PayableAmount : Currency;         //BT-115 = BT-112 - BT-113 + BT-114 + Summe BT-DEX-002
@@ -845,6 +868,7 @@ end;
 
 procedure TInvoice.Clear;
 begin
+  ProfileID := 'urn:fdc:peppol.eu:2017:poacc:billing:01:1.0';
   InvoiceLines.Clear;
   AllowanceCharges.Clear;
   PrecedingInvoiceReferences.Clear;
@@ -1047,6 +1071,7 @@ begin
   ItemAttributes := TInvoiceLineItemAttributes.Create;
   InvoiceLinePeriodStartDate := 0;
   InvoiceLinePeriodEndDate := 0;
+  OriginTradeCountry := '';
 end;
 
 destructor TInvoiceLine.Destroy;
@@ -1376,16 +1401,34 @@ begin
 end;
 
 procedure TInvoiceAttachment.EmbedDataFromFile(const _Filename: String);
+const
+  RETRY_COUNT = 5;
+  RETRY_DELAY_MS = 150;
 var
   str : TFileStream;
+  attempt : Integer;
 begin
   if not FileExists(_Filename) then
     exit;
-  str := TFileStream.Create(_Filename,fmOpenRead);
+  attempt := 0;
+  while true do
   try
-    EmbedDataFromStream(str);
-  finally
-    str.Free;
+    str := TFileStream.Create(_Filename, fmOpenRead or fmShareDenyNone);
+    try
+      EmbedDataFromStream(str);
+    finally
+      str.Free;
+    end;
+    break;
+  except
+    on E : EFOpenError do
+    begin
+      //Datei ist (noch) durch einen anderen Prozess gesperrt - kurz warten und erneut versuchen.
+      Inc(attempt);
+      if attempt >= RETRY_COUNT then
+        raise;
+      TThread.Sleep(RETRY_DELAY_MS);
+    end;
   end;
 end;
 
@@ -1406,6 +1449,33 @@ begin
 end;
 
 function TInvoiceAttachment.GetDataAsBase64: String;
+{$IFDEF FPC}
+var
+  ms : TMemoryStream;
+  enc : TBase64EncodingStream;
+  raw : RawByteString;
+begin
+  Result := '';
+  Data.Seek(0,soFromBeginning);
+  if Data.Size = 0 then
+    exit;
+  ms := TMemoryStream.Create;
+  try
+    enc := TBase64EncodingStream.Create(ms);
+    try
+      enc.CopyFrom(Data,Data.Size);
+    finally
+      enc.Free; // schreibt das letzte Quartett (Flush/Finalize)
+    end;
+    SetLength(raw,ms.Size);
+    if ms.Size > 0 then
+      Move(ms.Memory^,raw[1],ms.Size);
+    Result := String(raw); // Base64 ist reines ASCII
+  finally
+    ms.Free;
+  end;
+end;
+{$ELSE}
 var
   str : TMemoryStream;
   base64 : System.NetEncoding.TBase64Encoding;
@@ -1430,8 +1500,28 @@ begin
     str.Free;
   end;
 end;
+{$ENDIF}
 
 procedure TInvoiceAttachment.SetDataFromBase64(const _Val: String);
+{$IFDEF FPC}
+var
+  ss : TStringStream;
+  dec : TBase64DecodingStream;
+begin
+  Data.Clear;
+  if _Val = '' then
+    exit;
+  ss := TStringStream.Create(AnsiString(_Val));
+  dec := TBase64DecodingStream.Create(ss);
+  try
+    Data.CopyFrom(dec,0); // 0 = gesamten Quellstrom kopieren
+    Data.Seek(0,soFromBeginning);
+  finally
+    dec.Free;
+    ss.Free;
+  end;
+end;
+{$ELSE}
 var
   str : TMemoryStream;
   internalValue : AnsiString;
@@ -1450,6 +1540,7 @@ begin
     str.Free;
   end;
 end;
+{$ENDIF}
 
 { TInvoiceAttachmentList }
 
@@ -1593,6 +1684,7 @@ end;
 constructor TInvoiceDeliveryInformation.Create;
 begin
   Address := TInvoiceAddress.Create;
+  LocationIdentifierSchemeID := '0088';
 end;
 
 destructor TInvoiceDeliveryInformation.Destroy;
@@ -1659,4 +1751,3 @@ begin
 end;
 
 end.
-

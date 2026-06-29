@@ -1,6 +1,6 @@
 <#
   Installationstool mit Profilen je Modul. Ohne Parameter werden alle Module installiert.
-  Module: validator, config23x, config30x, zugferd, vis23x, vis30x, jre, fop, mustang, saxon
+  Module: validator, config23x, config30x, bis, zugferd, vis23x, vis30x, jre, fop, mustang, saxon
 
   Beispiele:
   - Alle Module installieren (Default ohne Parameter):
@@ -17,7 +17,7 @@
 #>
 
 param(
-  [Parameter(Position=0, HelpMessage='Module: validator, config23x, config30x, zugferd, vis23x, vis30x, jre, fop, mustang, saxon')]
+  [Parameter(Position=0, HelpMessage='Module: validator, config23x, config30x, bis, zugferd, vis23x, vis30x, jre, fop, mustang, saxon')]
   [string[]]$Modules
 )
 
@@ -124,11 +124,20 @@ function Install-Config30x {
   Remove-File $zip
 }
 
+function Install-Bis {
+  Write-Host 'Installing: validator-configuration-bis'
+  Remove-Dir (Join-Path $Root 'validator-configuration-bis')
+  $zip = Join-Path $Root 'validator-configuration-bis.zip'
+  Invoke-Download -Uri "https://github.com/itplr-kosit/validator-configuration-bis/releases/download/release-3.0.20/validation-configuration-bis-3.0.20.zip" -Destination $zip -Label 'bis download'
+  Expand-Archive $zip -DestinationPath (Join-Path $Root 'validator-configuration-bis') -Force
+  Remove-File $zip
+}
+
 function Install-Zugferd {
   Write-Host 'Installing: validator-configuration-zugferd'
   Remove-Dir (Join-Path $Root 'validator-configuration-zugferd')
   $zip = Join-Path $Root 'validator-configuration-zugferd.zip'
-  Invoke-Download -Uri "https://github.com/LandrixSoftware/validator-configuration-zugferd/releases/download/validation-configuration-zugferd-2.3.3-20251208/validation-configuration-zugferd-2.3.3-2025-12-08.zip" -Destination $zip -Label 'zugferd download'
+  Invoke-Download -Uri "https://github.com/LandrixSoftware/validator-configuration-zugferd/releases/download/validation-configuration-zugferd-2.5/validation-configuration-zugferd-2.5-2026-07-01.zip" -Destination $zip -Label 'zugferd download'
   Expand-Archive $zip -DestinationPath (Join-Path $Root 'validator-configuration-zugferd') -Force
   Remove-File $zip
 }
@@ -208,7 +217,7 @@ function Install-Mustang {
   }
 }
 
-$all = @('validator','config23x','config30x','zugferd','vis23x','vis30x','jre','fop','saxon','mustang')
+$all = @('validator','config23x','config30x','bis','zugferd','vis23x','vis30x','jre','fop','saxon','mustang')
 if (-not $Modules -or $Modules.Count -eq 0) { $Modules = $all }
 $Modules = $Modules | ForEach-Object { $_.ToLower() }
 
@@ -224,6 +233,7 @@ foreach ($m in $Modules) {
     'validator'   { Install-Validator }
     'config23x'   { Install-Config23x }
     'config30x'   { Install-Config30x }
+    'bis'         { Install-Bis }
     'zugferd'     { Install-Zugferd }
     'vis23x'      { Install-Vis23x }
     'vis30x'      { Install-Vis30x }
