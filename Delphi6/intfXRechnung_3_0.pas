@@ -2891,8 +2891,10 @@ begin
           Attributes['format'] := '102';
           Text := TXRechnungHelper.DateToStrUNCEFACTFormat(_Invoice.PrecedingInvoiceReferences[i].IssueDate);
         end;
-        if (_Profile = ipXRechnung) then
-          break; //only one item allowed in xrechnung cii
+        //Factur-X 1.09 EN16931 erlaubt mehrere, das CII-D16B-Schema (KoSIT, Szenario XRechnung und EN16931)
+        //aber nur eines; mehrere nur in EXTENDED
+        if (_Profile <> ipZUGFeRDExtended) then
+          break;
       end;
       if _Invoice.BuyerAccountingReference <> '' then
       with AddChild('ram:ReceivableSpecifiedTradeAccountingAccount') do
