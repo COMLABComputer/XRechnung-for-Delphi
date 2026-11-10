@@ -58,6 +58,10 @@
         <ram:SpecifiedTradeSettlementLineMonetarySummation>
           <ram:LineTotalAmount>500.00</ram:LineTotalAmount>
         </ram:SpecifiedTradeSettlementLineMonetarySummation>
+        <ram:AdditionalReferencedDocument>
+          <ram:IssuerAssignedID>OBJ-4711</ram:IssuerAssignedID>
+          <ram:TypeCode>130</ram:TypeCode>
+        </ram:AdditionalReferencedDocument>
       </ram:SpecifiedLineTradeSettlement>
     </ram:IncludedSupplyChainTradeLineItem>
     <ram:ApplicableHeaderTradeAgreement>
@@ -117,6 +121,14 @@
           <ram:ID schemeID="VA">DE123456788</ram:ID>
         </ram:SpecifiedTaxRegistration>
       </ram:BuyerTradeParty>
+      <ram:AdditionalReferencedDocument>
+        <ram:IssuerAssignedID>BT-17 12345</ram:IssuerAssignedID>
+        <ram:TypeCode>50</ram:TypeCode>
+      </ram:AdditionalReferencedDocument>
+      <ram:SpecifiedProcuringProject>
+        <ram:ID>PR-123</ram:ID>
+        <ram:Name>Project reference</ram:Name>
+      </ram:SpecifiedProcuringProject>
     </ram:ApplicableHeaderTradeAgreement>
     <ram:ApplicableHeaderTradeDelivery>
       <ram:ActualDeliverySupplyChainEvent>
@@ -161,7 +173,6 @@
         <ram:TaxBasisTotalAmount>500.00</ram:TaxBasisTotalAmount>
         <ram:TaxTotalAmount currencyID="EUR">0.00</ram:TaxTotalAmount>
         <ram:GrandTotalAmount>500.00</ram:GrandTotalAmount>
-        <ram:TotalPrepaidAmount>0.00</ram:TotalPrepaidAmount>
         <ram:DuePayableAmount>500.00</ram:DuePayableAmount>
       </ram:SpecifiedTradeSettlementHeaderMonetarySummation>
     </ram:ApplicableHeaderTradeSettlement>

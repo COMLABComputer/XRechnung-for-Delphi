@@ -69,6 +69,7 @@ type
     class function PercentageToStr(_Val : double) : String;
     class function PercentageFromStr(_Val : String) : double;
     class function QuantityToStr(_Val : double) : String;
+    class function BaseQuantityToStr(_Val : double) : String;
     class function QuantityFromStr(_Val : String) : double;
     class function InvoiceTypeCodeToStr(_Val : TInvoiceTypeCode) : String;
     class function InvoiceTypeCodeFromStr(const _Val : String) : TInvoiceTypeCode;
@@ -82,6 +83,9 @@ type
     class function InvoiceSpecialServiceDescriptionCodeFromStr(_Val : String) : TInvoiceSpecialServiceDescriptionCode;
     class function InvoiceDutyTaxFeeCategoryCodeToStr(_Val : TInvoiceDutyTaxFeeCategoryCode) : String;
     class function InvoiceDutyTaxFeeCategoryCodeFromStr(_Val : String) : TInvoiceDutyTaxFeeCategoryCode;
+    class function InvoiceLineStatusReasonCodeToStr(_Val : TInvoiceLineStatusReasonCode) : String;
+    class function InvoiceLineStatusReasonCodeFromStr(_Val : String) : TInvoiceLineStatusReasonCode;
+    class function InvoiceLineStatusReasonCodeOf(_Invoiceline : TInvoiceLine; _IsSubInvoiceLine : Boolean) : TInvoiceLineStatusReasonCode;
     class function InvoiceAttachmentTypeToStr(_Val : TInvoiceAttachmentType) : String;
     class function InvoiceAttachmentTypeFromStr(_Val : String) : TInvoiceAttachmentType;
     class function InvoiceAttachmentTypeCodeToStr(_Val : TInvoiceAttachmentTypeCode) : String;
@@ -96,7 +100,12 @@ type
                        XRechnungVersion_30x_UNCEFACT,
                        ZUGFeRDEN16931Version_250,
                        ZUGFeRDExtendedVersion_250,
-                       ZUGFeRDExtendedVersion_1_NotSupported);
+                       PeppolBillingVersion_30,
+                       ZUGFeRDExtendedVersion_1_NotSupported,
+                       //aeltere XRechnung-Versionen und fremde EN16931-CIUS in UBL, z.B. xrechnung_1.2 oder 2.3.
+                       //Schreiben ist seit 01.02.2024 nur noch als 3.0.x zulaessig, gelesen werden koennen sie
+                       //weiterhin, die Feldstruktur ist identisch
+                       XRechnungVersion_2x_ReadingOnly);
 
   TXRechnungValidationHelper = class(TObject)
   public
@@ -129,6 +138,14 @@ type
     class procedure SaveDocument(_Invoice: TInvoice;_Version : TXRechnungVersion; _Xml : IXMLDocument);
     class function  LoadFromXMLDocument(_Invoice: TInvoice; _XmlDocument: IXMLDocument; out _Error : String {$IFDEF ZUGFeRD_Support};_AdditionalContent : TZUGFeRDAdditionalContent = nil{$ENDIF}) : Boolean;
   public
+    //XMP-Beschreibung (rdf:Description) fuer ein ZUGFeRD-/Factur-X-PDF/A-3,
+    //passend zu ZUGFERD_INVOICE_PDF_SCHEMA. ConformanceLevel und Dateiname je
+    //Version: ZUGFeRDEN16931Version_250 = EN 16931 (factur-x.xml),
+    //ZUGFeRDExtendedVersion_250 = EXTENDED (factur-x.xml),
+    //XRechnungVersion_30x_UNCEFACT = XRECHNUNG (xrechnung.xml).
+    //UBL laesst sich nicht als ZUGFeRD einbetten -> Leerstring.
+    class function ZUGFeRDPdfXmpInfo(_Version : TXRechnungVersion) : String;
+    class function ZUGFeRDPdfFilename(_Version : TXRechnungVersion) : String;
     class function ConsistencyCheck(_Invoice : TInvoice; _Version : TXRechnungVersion) : Boolean; overload;
     class function ConsistencyCheck(_Invoice : TInvoice; _Version : TXRechnungVersion; out _ErrorCode : Integer) : Boolean; overload;
     class procedure CorrectDueDateIfNotDefined(_Invoice : TInvoice);
@@ -152,10 +169,19 @@ const
   ccNoBT31BT30               = 6;
   ccNoBT31BT32               = 7;
   ccPrepaidPaymentNotSupported = 8;
+  ccNoEMUnderPeppol          = 9;
+  ccLineDeliveryOnlyExtended = 10; //Lieferschein/Lieferdatum je Position nur in ZUGFeRD/Factur-X EXTENDED
+  ccSubInvoiceLinesNotSupported = 11; //Unterpositionen nur in XRechnung UBL, Peppol und ZUGFeRD/Factur-X EXTENDED, INFORMATION auf oberster Ebene und DETAIL mit Unterpositionen nur EXTENDED
+  ccSubInvoiceLineAmountMismatch = 12; //EXTENDED: Betrag einer Oberposition (GROUP) ungleich der Summe ihrer Unterpositionen (BR-FXEXT-08)
 
   ZUGFERD_INVOICE_PDF_FILENAME_FACTURX =
     'factur-x.xml';
+  //Dateiname im PDF beim Profil XRECHNUNG (CII), sonst factur-x.xml
+  ZUGFERD_INVOICE_PDF_FILENAME_XRECHNUNG =
+    'xrechnung.xml';
 
+  //Fest fuer Profil EXTENDED. Fuer andere Profile (EN 16931, XRECHNUNG)
+  //TXRechnungInvoiceAdapter.ZUGFeRDPdfXmpInfo verwenden.
   ZUGFERD_INVOICE_PDF_XMP_INFO =
     '<rdf:Description xmlns:fx="urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#"' + #32 + 'rdf:about="">' + #10 +
     '<fx:DocumentType>INVOICE</fx:DocumentType>' + #10 +
@@ -167,7 +193,7 @@ const
     '<rdf:li rdf:parseType="Resource">' + #10 +
       '<pdfaSchema:schema>Factur-X PDFA Extension Schema</pdfaSchema:schema>' + #10 +
       '<pdfaSchema:namespaceURI>urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#</pdfaSchema:namespaceURI>' + #10 +
-      '<pdfaSchema:prefix>zf</pdfaSchema:prefix>' + #10 +
+      '<pdfaSchema:prefix>fx</pdfaSchema:prefix>' + #10 +
       '<pdfaSchema:property>' + #10 +
          '<rdf:Seq>' + #10 +
            '<rdf:li rdf:parseType="Resource">' + #10 +
@@ -267,6 +293,35 @@ begin
   end;
 end;
 
+class function TXRechnungInvoiceAdapter.ZUGFeRDPdfFilename(_Version : TXRechnungVersion) : String;
+begin
+  case _Version of
+    ZUGFeRDEN16931Version_250,
+    ZUGFeRDExtendedVersion_250    : Result := ZUGFERD_INVOICE_PDF_FILENAME_FACTURX;
+    XRechnungVersion_30x_UNCEFACT : Result := ZUGFERD_INVOICE_PDF_FILENAME_XRECHNUNG;
+    else Result := '';
+  end;
+end;
+
+class function TXRechnungInvoiceAdapter.ZUGFeRDPdfXmpInfo(_Version : TXRechnungVersion) : String;
+var
+  lLevel : String;
+begin
+  Result := '';
+  case _Version of
+    ZUGFeRDEN16931Version_250     : lLevel := 'EN 16931';
+    ZUGFeRDExtendedVersion_250    : lLevel := 'EXTENDED';
+    XRechnungVersion_30x_UNCEFACT : lLevel := 'XRECHNUNG';
+    else exit;
+  end;
+  Result :=
+    '<rdf:Description xmlns:fx="urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#"' + #32 + 'rdf:about="">' + #10 +
+    '<fx:DocumentType>INVOICE</fx:DocumentType>' + #10 +
+    '<fx:DocumentFileName>' + ZUGFeRDPdfFilename(_Version) + '</fx:DocumentFileName>' + #10 +
+    '<fx:Version>1.0</fx:Version>' + #10 +
+    '<fx:ConformanceLevel>' + lLevel + '</fx:ConformanceLevel></rdf:Description>';
+end;
+
 class function TXRechnungInvoiceAdapter.ConsistencyCheck(_Invoice: TInvoice;
   _Version: TXRechnungVersion): Boolean;
 var
@@ -279,6 +334,94 @@ class function TXRechnungInvoiceAdapter.ConsistencyCheck(_Invoice: TInvoice;
   _Version: TXRechnungVersion; out _ErrorCode: Integer): Boolean;
 var
   lCount,i : Integer;
+  function HasSubInvoiceLines(_Lines : TInvoiceLines) : Boolean;
+  var
+    j : Integer;
+  begin
+    Result := false;
+    for j := 0 to _Lines.Count-1 do
+    if _Lines[j].SubInvoiceLines.Count > 0 then
+    begin
+      Result := true;
+      exit;
+    end;
+  end;
+
+  //nur oberste Ebene: dort wuerde eine INFORMATION-Position ausserhalb von
+  //EXTENDED mitgezaehlt, Unterpositionen zaehlen in UBL ohnehin nicht
+  function HasInformationLines(_Lines : TInvoiceLines) : Boolean;
+  var
+    j : Integer;
+  begin
+    Result := false;
+    for j := 0 to _Lines.Count-1 do
+    if (_Lines[j].LineStatusReasonCode = ilsrc_Information) then
+    begin
+      Result := true;
+      exit;
+    end;
+  end;
+
+  //BR-FXEXT-08: GROUP-Betrag = Summe der DETAIL- und GROUP-Unterpositionen,
+  //verglichen auf den Centbetraegen, die tatsaechlich geschrieben werden
+  function HasGroupAmountMismatch(_Lines : TInvoiceLines; _IsSubInvoiceLine : Boolean) : Boolean;
+  var
+    j,k : Integer;
+    lSum : Currency;
+  begin
+    Result := true;
+    for j := 0 to _Lines.Count-1 do
+    begin
+      if TXRechnungHelper.InvoiceLineStatusReasonCodeOf(_Lines[j],_IsSubInvoiceLine) = ilsrc_Group then
+      begin
+        lSum := 0;
+        for k := 0 to _Lines[j].SubInvoiceLines.Count-1 do
+        if TXRechnungHelper.InvoiceLineStatusReasonCodeOf(_Lines[j].SubInvoiceLines[k],true) in [ilsrc_Detail,ilsrc_Group] then
+          lSum := lSum + TXRechnungHelper.AmountFromStr(TXRechnungHelper.AmountToStr(_Lines[j].SubInvoiceLines[k].LineAmount));
+        if TXRechnungHelper.AmountToStr(lSum) <> TXRechnungHelper.AmountToStr(_Lines[j].LineAmount) then
+          exit;
+      end;
+      if HasGroupAmountMismatch(_Lines[j].SubInvoiceLines,true) then
+        exit;
+    end;
+    Result := false;
+  end;
+
+  //ausdruecklich DETAIL mit Unterpositionen: in EXTENDED zaehlen Ober- und
+  //Unterpositionen, in UBL nur die Oberposition - nicht uebertragbar
+  function HasDetailWithSubInvoiceLines(_Lines : TInvoiceLines) : Boolean;
+  var
+    j : Integer;
+  begin
+    Result := false;
+    for j := 0 to _Lines.Count-1 do
+    if ((_Lines[j].LineStatusReasonCode = ilsrc_Detail) and (_Lines[j].SubInvoiceLines.Count > 0)) or
+       HasDetailWithSubInvoiceLines(_Lines[j].SubInvoiceLines) then
+    begin
+      Result := true;
+      exit;
+    end;
+  end;
+
+  function HasLineDeliveryData(_Lines : TInvoiceLines) : Boolean;
+  var
+    j : Integer;
+  begin
+    Result := false;
+    for j := 0 to _Lines.Count-1 do
+    begin
+      if (_Lines[j].DeliveryNoteNumber <> '') or
+         (_Lines[j].DeliveryNoteLineID <> '') or
+         (_Lines[j].DeliveryNoteDate > 0) or
+         (_Lines[j].ActualDeliveryDate > 0) or
+         HasLineDeliveryData(_Lines[j].SubInvoiceLines) then
+      begin
+        Result := true;
+        exit;
+      end;
+    end;
+  end;
+
 begin
   Result := true;
   _ErrorCode := ccOK;
@@ -369,6 +512,56 @@ begin
     exit;
   end;
 
+  //Ein leeres Schema wird beim Schreiben durch 'EM' ersetzt, unter Peppol ist beides unzulaessig,
+  //dort muss eine adressierbare Kennung aus der EAS-Codeliste angegeben werden
+  if (_Version = PeppolBillingVersion_30) then
+  if ((_Invoice.AccountingSupplierParty.ElectronicAddressSellerBuyer <> '') and
+      ((_Invoice.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID = 'EM') or
+       (_Invoice.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID = ''))) or
+     ((_Invoice.AccountingCustomerParty.ElectronicAddressSellerBuyer <> '') and
+      ((_Invoice.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID = 'EM') or
+       (_Invoice.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID = ''))) then
+  begin
+    _ErrorCode := ccNoEMUnderPeppol;
+    Result := false;
+    exit;
+  end;
+
+  //Lieferschein und Lieferdatum je Position gibt es nur im Profil ZUGFeRD/Factur-X EXTENDED,
+  //in allen anderen Formaten wuerden sie beim Schreiben weggelassen
+  if (_Version <> ZUGFeRDExtendedVersion_250) then
+  if HasLineDeliveryData(_Invoice.InvoiceLines) then
+  begin
+    _ErrorCode := ccLineDeliveryOnlyExtended;
+    Result := false;
+    exit;
+  end;
+
+  //Unterpositionen: XRechnung CII und ZUGFeRD EN16931 kennen sie nicht. INFORMATION-
+  //Positionen auf oberster Ebene (zaehlen nicht in die Summen) und DETAIL-Positionen
+  //mit Unterpositionen (zaehlen samt Unterpositionen) gibt es nur in ZUGFeRD/Factur-X
+  //EXTENDED, ueberall sonst ergaeben sie andere Summen
+  if ((_Version in [XRechnungVersion_30x_UNCEFACT,ZUGFeRDEN16931Version_250]) and
+      HasSubInvoiceLines(_Invoice.InvoiceLines)) or
+     ((_Version <> ZUGFeRDExtendedVersion_250) and
+      (HasInformationLines(_Invoice.InvoiceLines) or
+       HasDetailWithSubInvoiceLines(_Invoice.InvoiceLines))) then
+  begin
+    _ErrorCode := ccSubInvoiceLinesNotSupported;
+    Result := false;
+    exit;
+  end;
+
+  //EXTENDED zaehlt nur DETAIL-Positionen, eine Oberposition muss deshalb genau
+  //die Summe ihrer Unterpositionen tragen (BR-FXEXT-08)
+  if (_Version = ZUGFeRDExtendedVersion_250) then
+  if HasGroupAmountMismatch(_Invoice.InvoiceLines,false) then
+  begin
+    _ErrorCode := ccSubInvoiceLineAmountMismatch;
+    Result := false;
+    exit;
+  end;
+
   //Beide Steuernummern beim Kaeufer nicht vorgesehen
 //  if (_Invoice.AccountingCustomerParty.VATCompanyID <> '') and
 //     (_Invoice.AccountingCustomerParty.VATCompanyNumber <> '') then
@@ -445,6 +638,8 @@ class function TXRechnungInvoiceAdapter.LoadFromXMLDocument(
   _Invoice: TInvoice; _XmlDocument: IXMLDocument;
   out _Error: String
   {$IFDEF ZUGFeRD_Support};_AdditionalContent : TZUGFeRDAdditionalContent = nil{$ENDIF}): Boolean;
+var
+  rootName : String;
 begin
   Result := false;
   if _Invoice = nil then
@@ -456,6 +651,8 @@ begin
     XRechnungVersion_30x_UBL      : Result := TXRechnungInvoiceAdapter301.LoadDocumentUBL(_Invoice,_XmlDocument,_Error);
     XRechnungVersion_30x_UNCEFACT : Result := TXRechnungInvoiceAdapter301.LoadDocumentUNCEFACT(_Invoice,_XmlDocument,_Error);
     PeppolBillingVersion_30       : Result := TXRechnungInvoiceAdapter301.LoadDocumentUBL(_Invoice,_XmlDocument,_Error);
+    //nur Lesen, geschrieben wird ausschliesslich 3.0.x
+    XRechnungVersion_2x_ReadingOnly : Result := TXRechnungInvoiceAdapter301.LoadDocumentUBL(_Invoice,_XmlDocument,_Error);
     {$IFNDEF ZUGFeRD_Support}
     ZUGFeRDEN16931Version_250 : Result := TXRechnungInvoiceAdapter301.LoadDocumentUNCEFACT(_Invoice,_XmlDocument,_Error);
     ZUGFeRDExtendedVersion_250 : Result := TXRechnungInvoiceAdapter301.LoadDocumentUNCEFACT(_Invoice,_XmlDocument,_Error);
@@ -464,7 +661,20 @@ begin
     ZUGFeRDExtendedVersion_250,
     ZUGFeRDExtendedVersion_1_NotSupported : Result := TZUGFeRDInvoiceAdapter.LoadFromXMLDocument(_Invoice,_XmlDocument,_Error,_AdditionalContent);
     {$ENDIF}
-    else exit;
+    else
+    begin
+      //Fallback fuer Rechnungen ohne oder mit unbekannter CustomizationID. Die Feldstruktur
+      //entspricht EN16931, daher wird strukturbasiert nach dem Wurzelelement eingelesen,
+      //andernfalls gibt es wenigstens einen Fehlertext.
+      rootName := TXRechnungXMLHelper.LocalName(_XmlDocument.DocumentElement.NodeName);
+      if rootName = 'CrossIndustryInvoice' then
+        Result := TXRechnungInvoiceAdapter301.LoadDocumentUNCEFACT(_Invoice,_XmlDocument,_Error)
+      else
+      if (rootName = 'Invoice') or (rootName = 'CreditNote') then
+        Result := TXRechnungInvoiceAdapter301.LoadDocumentUBL(_Invoice,_XmlDocument,_Error)
+      else
+        _Error := 'Nicht unterstuetztes Rechnungsformat (Wurzelelement '+_XmlDocument.DocumentElement.NodeName+')';
+    end;
   end;
 end;
 
@@ -493,7 +703,7 @@ class procedure TXRechnungInvoiceAdapter.SaveDocument(_Invoice: TInvoice;
   _Version : TXRechnungVersion; _Xml: IXMLDocument);
 begin
   case _Version of
-    XRechnungVersion_30x_UBL : TXRechnungInvoiceAdapter301.SaveDocumentUBL(_Invoice,_Xml);
+    XRechnungVersion_30x_UBL : TXRechnungInvoiceAdapter301.SaveDocumentUBL(_Invoice,_Xml,ipXRechnung);
     XRechnungVersion_30x_UNCEFACT : TXRechnungInvoiceAdapter301.SaveDocumentUNCEFACT(_Invoice,_Xml,ipXRechnung);
     ZUGFeRDEN16931Version_250 : TXRechnungInvoiceAdapter301.SaveDocumentUNCEFACT(_Invoice,_Xml,ipZUGFeRDEN16931);
     ZUGFeRDExtendedVersion_250 : TXRechnungInvoiceAdapter301.SaveDocumentUNCEFACT(_Invoice,_Xml,ipZUGFeRDExtended);
@@ -512,7 +722,7 @@ end;
 class function TXRechnungHelper.AmountToStr(
   _Val: Currency): String;
 begin
-  Result := StringReplace(Format('%.2f',[_Val]),',','.',[rfIgnoreCase,rfReplaceAll]);
+  Result := StringReplace(Format('%.2f',[_Val]),DecimalSeparator,'.',[rfReplaceAll]);
 end;
 
 class function TXRechnungHelper.UnitPriceAmountFromStr(
@@ -531,9 +741,9 @@ var
 begin
   lRounded := RoundTo(_Val,-2);
   if _Val = lRounded then
-    Result := StringReplace(Format('%.2f',[_Val]),',','.',[rfIgnoreCase,rfReplaceAll])
+    Result := StringReplace(Format('%.2f',[_Val]),DecimalSeparator,'.',[rfReplaceAll])
   else
-    Result := StringReplace(Format('%.4f',[_Val]),',','.',[rfIgnoreCase,rfReplaceAll]);
+    Result := StringReplace(Format('%.4f',[_Val]),DecimalSeparator,'.',[rfReplaceAll]);
 end;
 
 class function TXRechnungHelper.DateFromStrUBLFormat(const _Val : String) : TDateTime;
@@ -574,7 +784,7 @@ class function TXRechnungHelper.FloatToStr(
 begin
   if _DecimalPlaces < 0 then
     _DecimalPlaces := 0;
-  Result := StringReplace(Format('%.'+IntToStr(_DecimalPlaces)+'f',[_Val]),',','.',[rfIgnoreCase,rfReplaceAll]);
+  Result := StringReplace(Format('%.'+IntToStr(_DecimalPlaces)+'f',[_Val]),DecimalSeparator,'.',[rfReplaceAll]);
 end;
 
 class function TXRechnungHelper.InvoiceAllowanceOrChargeIdentCodeFromStr(
@@ -851,6 +1061,44 @@ begin
   end;
 end;
 
+class function TXRechnungHelper.InvoiceLineStatusReasonCodeToStr(_Val: TInvoiceLineStatusReasonCode): String;
+begin
+  case _Val of
+    ilsrc_Detail: Result := 'DETAIL';
+    ilsrc_Group: Result := 'GROUP';
+    ilsrc_Information: Result := 'INFORMATION';
+    else Result := '';
+  end;
+end;
+
+class function TXRechnungHelper.InvoiceLineStatusReasonCodeFromStr(_Val: String): TInvoiceLineStatusReasonCode;
+begin
+  if SameText(_Val,'DETAIL') then
+    Result := ilsrc_Detail
+  else
+  if SameText(_Val,'GROUP') then
+    Result := ilsrc_Group
+  else
+  if SameText(_Val,'INFORMATION') then
+    Result := ilsrc_Information
+  else
+    Result := ilsrc_None;
+end;
+
+class function TXRechnungHelper.InvoiceLineStatusReasonCodeOf(_Invoiceline: TInvoiceLine;
+  _IsSubInvoiceLine: Boolean): TInvoiceLineStatusReasonCode;
+begin
+  //gesetzter Wert hat Vorrang, sonst aus der Struktur ableiten
+  Result := _Invoiceline.LineStatusReasonCode;
+  if Result <> ilsrc_None then
+    exit;
+  if _Invoiceline.SubInvoiceLines.Count > 0 then
+    Result := ilsrc_Group
+  else
+  if _IsSubInvoiceLine then
+    Result := ilsrc_Detail;
+end;
+
 class function TXRechnungHelper.InvoiceNoteSubjectCodeFromStr(
   _Val: String): TInvoiceNoteSubjectCode;
 begin
@@ -881,6 +1129,9 @@ begin
   if SameText(_Val,'PMT') then
     Result := insc_PMT
   else
+  if SameText(_Val,'BLP') then
+    Result := insc_BLP
+  else
     Result := insc_None;
 end;
 
@@ -897,6 +1148,7 @@ begin
     insc_TXD: Result := 'TXD';
     insc_CUS: Result := 'CUS';
     insc_PMT: Result := 'PMT';
+    insc_BLP: Result := 'BLP';
     else Result := '';
   end;
 end;
@@ -1389,6 +1641,36 @@ begin
     Result := iuc_percent else
   if SameText(_Val,'XPK') then
     Result := iuc_packaging else
+  if SameText(_Val,'ANN') then
+    Result := iuc_year else
+  if SameText(_Val,'IE') then
+    Result := iuc_person else
+  if SameText(_Val,'DMK') then
+    Result := iuc_square_decimetre else
+  if SameText(_Val,'DMQ') then
+    Result := iuc_cubic_decimetre else
+  if SameText(_Val,'DMT') then
+    Result := iuc_decimetre else
+  if SameText(_Val,'CMT') then
+    Result := iuc_centimetre else
+  if SameText(_Val,'CMK') then
+    Result := iuc_square_centimetre else
+  if SameText(_Val,'CMQ') then
+    Result := iuc_cubic_centimetre else
+  if SameText(_Val,'PR') then
+    Result := iuc_pair else
+  if SameText(_Val,'XBG') then
+    Result := iuc_bag else
+  if SameText(_Val,'XRO') then
+    Result := iuc_roll else
+  if SameText(_Val,'FOT') then
+    Result := iuc_foot else
+  if SameText(_Val,'INH') then
+    Result := iuc_inch else
+  if SameText(_Val,'H18') or SameText(_Val,'HAR') then
+    Result := iuc_hectare else
+  if SameText(_Val,'XSA') then
+    Result := iuc_sack else
   Result := iuc_one; //C62
 end;
 
@@ -1423,6 +1705,21 @@ begin
     iuc_kilowatt_hour : Result := 'KWH';
     iuc_percent : Result := 'P1';
     iuc_packaging : Result := 'XPK';
+    iuc_year : Result := 'ANN';
+    iuc_person : Result := 'IE';
+    iuc_square_decimetre : Result := 'DMK';
+    iuc_cubic_decimetre : Result := 'DMQ';
+    iuc_decimetre : Result := 'DMT';
+    iuc_centimetre : Result := 'CMT';
+    iuc_square_centimetre : Result := 'CMK';
+    iuc_cubic_centimetre : Result := 'CMQ';
+    iuc_pair : Result := 'PR';
+    iuc_bag : Result := 'XBG';
+    iuc_roll : Result := 'XRO';
+    iuc_foot : Result := 'FOT';
+    iuc_inch : Result := 'INH';
+    iuc_hectare : Result := 'H18'; //Quadrathektometer = Hektar; HAR lehnt die Factur-X-Codeliste ab
+    iuc_sack : Result := 'XSA';
   end;
 end;
 
@@ -1433,7 +1730,7 @@ end;
 
 class function TXRechnungHelper.PercentageToStr(_Val: double): String;
 begin
-  Result := StringReplace(Format('%.2f',[_Val]),',','.',[rfIgnoreCase,rfReplaceAll]);
+  Result := StringReplace(Format('%.2f',[_Val]),DecimalSeparator,'.',[rfReplaceAll]);
 end;
 
 class function TXRechnungHelper.QuantityFromStr(_Val: String): double;
@@ -1443,7 +1740,21 @@ end;
 
 class function TXRechnungHelper.QuantityToStr(_Val: double): String;
 begin
-  Result := StringReplace(Format('%.4f',[_Val]),',','.',[rfIgnoreCase,rfReplaceAll]);
+  Result := StringReplace(Format('%.4f',[_Val]),DecimalSeparator,'.',[rfReplaceAll]);
+end;
+
+class function TXRechnungHelper.BaseQuantityToStr(_Val: double): String;
+begin
+  //BT-149 ist eine Menge ohne Begrenzung der Nachkommastellen (keine BR-DEC-Regel),
+  //0.001 darf also nicht zu 0.00 werden. Mit 6 Stellen formatieren (mehr bringt bei
+  //grossen Werten das Rauschen von double ins XML) und Nullen am Ende bis auf
+  //mindestens 2 Nachkommastellen streichen: 1 -> 1.00, 0.001 -> 0.001
+  Result := StringReplace(Format('%.6f',[_Val]),DecimalSeparator,'.',[rfReplaceAll]);
+  //Sehr grosse Werte gibt Format in Exponentialdarstellung aus - dort nicht kuerzen
+  if Pos('E',UpperCase(Result)) > 0 then
+    exit;
+  while (Result[Length(Result)] = '0') and (Length(Result) - Pos('.',Result) > 2) do
+    Delete(Result,Length(Result),1);
 end;
 
 class procedure TXRechnungHelper.ReadPaymentTerms(_Invoice: TInvoice;
@@ -1544,31 +1855,21 @@ class function TXRechnungValidationHelper.GetXRechnungVersion(
   _Xml: IXMLDocument): TXRechnungVersion;
 var
   node,node2 : IXMLNode;
+  rootName : String;
 begin
   Result := XRechnungVersion_Unknown;
   if _XML = nil then
     exit;
-  if (SameText(_XML.DocumentElement.NodeName,'Invoice') or
-      SameText(_XML.DocumentElement.NodeName,'ubl:Invoice') or
-      SameText(_XML.DocumentElement.NodeName,'ns0:Invoice') or
-      SameText(_XML.DocumentElement.NodeName,'CreditNote') or
-      SameText(_XML.DocumentElement.NodeName,'ubl:CreditNote') or
-      SameText(_XML.DocumentElement.NodeName,'ns0:CreditNote')) then
+  //Namespace-Praefixe sind frei waehlbar (n0:Invoice statt ubl:Invoice),
+  //daher wird nur der lokale Name des Wurzelelements verglichen
+  rootName := TXRechnungXMLHelper.LocalName(_XML.DocumentElement.NodeName);
+  if rootName = 'CrossIndustryDocument' then
   begin
-    if not (TXRechnungXMLHelper.FindChild(_XML.DocumentElement,'cbc:CustomizationID',node) or
-            TXRechnungXMLHelper.FindChild(_XML.DocumentElement,'CustomizationID',node)) then
-      exit;
-    if Pos('xrechnung_3.0',AnsiLowerCase(node.Text))>0 then
-      Result := XRechnungVersion_30x_UBL
-    else
-    if Pos('billing:3.0',AnsiLowerCase(node.Text))>0 then
-      Result := PeppolBillingVersion_30;
+    Result := ZUGFeRDExtendedVersion_1_NotSupported;
   end else
-  if (SameText(_XML.DocumentElement.NodeName,'CrossIndustryInvoice') or
-      SameText(_XML.DocumentElement.NodeName,'rsm:CrossIndustryInvoice')) then
+  if rootName = 'CrossIndustryInvoice' then
   begin
-    if not (TXRechnungXMLHelper.FindChild(_XML.DocumentElement,'rsm:ExchangedDocumentContext',node) or
-            TXRechnungXMLHelper.FindChild(_XML.DocumentElement,'ExchangedDocumentContext',node)) then
+    if not TXRechnungXMLHelper.FindChild(_XML.DocumentElement,'rsm:ExchangedDocumentContext',node) then
       exit;
     if not TXRechnungXMLHelper.FindChild(node,'ram:GuidelineSpecifiedDocumentContextParameter',node2) then
       exit;
@@ -1583,10 +1884,20 @@ begin
     if Pos('urn:cen.eu:en16931:2017',AnsiLowerCase(node.Text))>0 then
       Result := ZUGFeRDEN16931Version_250;
   end else
-  if (SameText(_XML.DocumentElement.NodeName,'CrossIndustryDocument') or
-      SameText(_XML.DocumentElement.NodeName,'rsm:CrossIndustryDocument')) then
+  if (rootName = 'Invoice') or (rootName = 'CreditNote') then
   begin
-    Result := ZUGFeRDExtendedVersion_1_NotSupported;
+    if not TXRechnungXMLHelper.FindChild(_XML.DocumentElement,'cbc:CustomizationID',node) then
+      exit;
+    if Pos('xrechnung_3.0',AnsiLowerCase(node.Text))>0 then
+      Result := XRechnungVersion_30x_UBL
+    else
+    if Pos('billing:3.0',AnsiLowerCase(node.Text))>0 then
+      Result := PeppolBillingVersion_30
+    else
+    //aeltere XRechnung-Versionen und fremde EN16931-CIUS, z.B.
+    //urn:cen.eu:en16931:2017#compliant#urn:xoev-de:kosit:standard:xrechnung_2.3
+    if Pos('urn:cen.eu:en16931:2017',AnsiLowerCase(node.Text))>0 then
+      Result := XRechnungVersion_2x_ReadingOnly;
   end;
 end;
 

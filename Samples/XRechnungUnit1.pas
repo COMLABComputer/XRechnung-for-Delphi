@@ -94,7 +94,7 @@ type
     WebBrowserContentFilenameHtml : String;
     WebBrowserContentFilenamePdf : String;
     WebBrowserContentFilenameValitoolPdf : String;
-    procedure Generate(inv : TInvoice);
+    procedure Generate(inv : TInvoice; _EndpointTestfall : Boolean = false);
   private
     {$IFNDEF USE_EDGE_BROWSER}
     WebBrowser2: TWebBrowser;
@@ -107,6 +107,7 @@ type
     procedure ClearBrowser;
     procedure ShowFileInBrowser(const _Filename : String; _BrowserIdx : Integer);
     procedure ShowXMLAsHtml(_Content : String);
+    procedure ShowPeppolXMLAsHtml(_Content : String);
     procedure ShowXMLAsPdf(_Content : String);
     procedure ShowXMLAsHtmlMustang(_Filename : String);
     procedure ShowXMLAsPdfMustang(_Filename : String);
@@ -118,6 +119,7 @@ type
     ValidatorConfigurationPath : String;
     ValidatorPeppolConfigurationPath : String;
     VisualizationLibPath : String;
+    PeppolVisualizationLibPath : String;
     SaxonLibPath : String;
     FopLibPath : String;
     MustangLibPath : String;
@@ -142,6 +144,7 @@ begin
   ValidatorConfigurationPath := DistributionBasePath +'validator-configuration30x'+PathDelim;
   ValidatorPeppolConfigurationPath := DistributionBasePath +'validator-configuration-bis'+PathDelim;
   VisualizationLibPath := DistributionBasePath +'visualization30x'+PathDelim;
+  PeppolVisualizationLibPath := DistributionBasePath +'visualization-bis'+PathDelim;
   SaxonLibPath := DistributionBasePath + 'saxon'+PathDelim;
   FopLibPath := DistributionBasePath + 'apache-fop'+PathDelim;
   MustangLibPath := DistributionBasePath + 'mustangproject'+PathDelim;
@@ -260,7 +263,8 @@ begin
   inv := TInvoice.Create;
   TInvoiceTestCases.TitelPositionsgruppen(inv);//Titel/Positionsgruppen
   TXRechnungInvoiceAdapter.SaveToFile(inv,XRechnungVersion_30x_UBL,ValidXMLExamplesPath+'TitelPositionsgruppen-ubl-30x.xml');
-  //TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDExtendedVersion_250,ValidXMLExamplesPath+'TitelPositionsgruppen-ciiextended-25.xml');
+  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDExtendedVersion_250,ValidXMLExamplesPath+'TitelPositionsgruppen-ciiextended-25.xml');
+  //Unterpositionen gibt es in CII nur im Profil EXTENDED, nicht in XRechnung CII
   //TXRechnungInvoiceAdapter.SaveToFile(inv,XRechnungVersion_30x_UNCEFACT,ValidXMLExamplesPath+'TitelPositionsgruppen-cii-30x.xml');
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := '9482348239847239874';
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := '0088';
@@ -389,84 +393,96 @@ begin
   inv := TInvoice.Create;
   TInvoiceTestCases.Gesamtbeispiel(inv,0,false,false,false,false);
   TXRechnungInvoiceAdapter.SaveToFile(inv,XRechnungVersion_30x_UBL,ValidXMLExamplesPath+'Gesamtbeispiel-ubl-30x.xml');
-  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDEN16931Version_250,ValidXMLExamplesPath+'Gesamtbeispiel-ciiEN16931-25.xml');
-  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDExtendedVersion_250,ValidXMLExamplesPath+'Gesamtbeispiel-ciiextended-25.xml');
-  TXRechnungInvoiceAdapter.SaveToFile(inv,XRechnungVersion_30x_UNCEFACT,ValidXMLExamplesPath+'Gesamtbeispiel-cii-30x.xml');
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := '9482348239847239874';
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := '0088';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'FR23342';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := '0002';
   TXRechnungInvoiceAdapter.SaveToFile(inv,PeppolBillingVersion_30,ValidXMLExamplesPath+'Gesamtbeispiel-ubl-peppol.xml');
   inv.Free;
+  inv := TInvoice.Create; //CII-Varianten mit den Einschraenkungen der CII-Syntaxbindung
+  TInvoiceTestCases.Gesamtbeispiel(inv,0,false,false,false,false,true);
+  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDEN16931Version_250,ValidXMLExamplesPath+'Gesamtbeispiel-ciiEN16931-25.xml');
+  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDExtendedVersion_250,ValidXMLExamplesPath+'Gesamtbeispiel-ciiextended-25.xml');
+  TXRechnungInvoiceAdapter.SaveToFile(inv,XRechnungVersion_30x_UNCEFACT,ValidXMLExamplesPath+'Gesamtbeispiel-cii-30x.xml');
+  inv.Free;
 
   inv := TInvoice.Create;
   TInvoiceTestCases.Gesamtbeispiel(inv,1,false,false,false,false);
   TXRechnungInvoiceAdapter.SaveToFile(inv,XRechnungVersion_30x_UBL,ValidXMLExamplesPath+'Gesamtbeispiel-Nettoziel-ubl-30x.xml');
-  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDEN16931Version_250,ValidXMLExamplesPath+'Gesamtbeispiel-Nettoziel-ciiEN16931-25.xml');
-  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDExtendedVersion_250,ValidXMLExamplesPath+'Gesamtbeispiel-Nettoziel-ciiextended-25.xml');
-  TXRechnungInvoiceAdapter.SaveToFile(inv,XRechnungVersion_30x_UNCEFACT,ValidXMLExamplesPath+'Gesamtbeispiel-Nettoziel-cii-30x.xml');
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := '9482348239847239874';
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := '0088';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'FR23342';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := '0002';
   TXRechnungInvoiceAdapter.SaveToFile(inv,PeppolBillingVersion_30,ValidXMLExamplesPath+'Gesamtbeispiel-Nettoziel-ubl-peppol.xml');
   inv.Free;
+  inv := TInvoice.Create; //CII-Varianten mit den Einschraenkungen der CII-Syntaxbindung
+  TInvoiceTestCases.Gesamtbeispiel(inv,1,false,false,false,false,true);
+  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDEN16931Version_250,ValidXMLExamplesPath+'Gesamtbeispiel-Nettoziel-ciiEN16931-25.xml');
+  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDExtendedVersion_250,ValidXMLExamplesPath+'Gesamtbeispiel-Nettoziel-ciiextended-25.xml');
+  TXRechnungInvoiceAdapter.SaveToFile(inv,XRechnungVersion_30x_UNCEFACT,ValidXMLExamplesPath+'Gesamtbeispiel-Nettoziel-cii-30x.xml');
+  inv.Free;
 
   inv := TInvoice.Create;
   TInvoiceTestCases.Gesamtbeispiel(inv,2,false,false,false,false);
   TXRechnungInvoiceAdapter.SaveToFile(inv,XRechnungVersion_30x_UBL,ValidXMLExamplesPath+'Gesamtbeispiel-Skonto1-ubl-30x.xml');
-  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDEN16931Version_250,ValidXMLExamplesPath+'Gesamtbeispiel-Skonto1-ciiEN16931-25.xml');
-  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDExtendedVersion_250,ValidXMLExamplesPath+'Gesamtbeispiel-Skonto1-ciiextended-25.xml');
-  TXRechnungInvoiceAdapter.SaveToFile(inv,XRechnungVersion_30x_UNCEFACT,ValidXMLExamplesPath+'Gesamtbeispiel-Skonto1-cii-30x.xml');
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := '9482348239847239874';
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := '0088';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'FR23342';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := '0002';
   TXRechnungInvoiceAdapter.SaveToFile(inv,PeppolBillingVersion_30,ValidXMLExamplesPath+'Gesamtbeispiel-Skonto1-ubl-peppol.xml');
   inv.Free;
+  inv := TInvoice.Create; //CII-Varianten mit den Einschraenkungen der CII-Syntaxbindung
+  TInvoiceTestCases.Gesamtbeispiel(inv,2,false,false,false,false,true);
+  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDEN16931Version_250,ValidXMLExamplesPath+'Gesamtbeispiel-Skonto1-ciiEN16931-25.xml');
+  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDExtendedVersion_250,ValidXMLExamplesPath+'Gesamtbeispiel-Skonto1-ciiextended-25.xml');
+  TXRechnungInvoiceAdapter.SaveToFile(inv,XRechnungVersion_30x_UNCEFACT,ValidXMLExamplesPath+'Gesamtbeispiel-Skonto1-cii-30x.xml');
+  inv.Free;
 
   inv := TInvoice.Create;
   TInvoiceTestCases.Gesamtbeispiel(inv,3,false,false,false,false);
   TXRechnungInvoiceAdapter.SaveToFile(inv,XRechnungVersion_30x_UBL,ValidXMLExamplesPath+'Gesamtbeispiel-Skonto2-ubl-30x.xml');
-  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDEN16931Version_250,ValidXMLExamplesPath+'Gesamtbeispiel-Skonto2-ciiEN16931-25.xml');
-  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDExtendedVersion_250,ValidXMLExamplesPath+'Gesamtbeispiel-Skonto2-ciiextended-25.xml');
-  TXRechnungInvoiceAdapter.SaveToFile(inv,XRechnungVersion_30x_UNCEFACT,ValidXMLExamplesPath+'Gesamtbeispiel-Skonto2-cii-30x.xml');
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := '9482348239847239874';
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := '0088';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'FR23342';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := '0002';
   TXRechnungInvoiceAdapter.SaveToFile(inv,PeppolBillingVersion_30,ValidXMLExamplesPath+'Gesamtbeispiel-Skonto2-ubl-peppol.xml');
   inv.Free;
+  inv := TInvoice.Create; //CII-Varianten mit den Einschraenkungen der CII-Syntaxbindung
+  TInvoiceTestCases.Gesamtbeispiel(inv,3,false,false,false,false,true);
+  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDEN16931Version_250,ValidXMLExamplesPath+'Gesamtbeispiel-Skonto2-ciiEN16931-25.xml');
+  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDExtendedVersion_250,ValidXMLExamplesPath+'Gesamtbeispiel-Skonto2-ciiextended-25.xml');
+  TXRechnungInvoiceAdapter.SaveToFile(inv,XRechnungVersion_30x_UNCEFACT,ValidXMLExamplesPath+'Gesamtbeispiel-Skonto2-cii-30x.xml');
+  inv.Free;
 
   inv := TInvoice.Create;
   TInvoiceTestCases.Gesamtbeispiel(inv,0,true,true,true,true);
   TXRechnungInvoiceAdapter.SaveToFile(inv,XRechnungVersion_30x_UBL,ValidXMLExamplesPath+'Gesamtbeispiel-Alles-ubl-30x.xml');
-  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDEN16931Version_250,ValidXMLExamplesPath+'Gesamtbeispiel-Alles-ciiEN16931-25.xml');
-  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDExtendedVersion_250,ValidXMLExamplesPath+'Gesamtbeispiel-Alles-ciiextended-25.xml');
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := '9482348239847239874';
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := '0088';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'FR23342';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := '0002';
   TXRechnungInvoiceAdapter.SaveToFile(inv,PeppolBillingVersion_30,ValidXMLExamplesPath+'Gesamtbeispiel-Alles-ubl-peppol.xml');
   inv.Free;
-  inv := TInvoice.Create;
+  inv := TInvoice.Create; //CII-Varianten mit den Einschraenkungen der CII-Syntaxbindung
   TInvoiceTestCases.Gesamtbeispiel(inv,0,true,true,true,true,true);
+  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDEN16931Version_250,ValidXMLExamplesPath+'Gesamtbeispiel-Alles-ciiEN16931-25.xml');
+  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDExtendedVersion_250,ValidXMLExamplesPath+'Gesamtbeispiel-Alles-ciiextended-25.xml');
   TXRechnungInvoiceAdapter.SaveToFile(inv,XRechnungVersion_30x_UNCEFACT,ValidXMLExamplesPath+'Gesamtbeispiel-Alles-cii-30x.xml');
   inv.Free;
 
   inv := TInvoice.Create;
   TInvoiceTestCases.Gesamtbeispiel(inv,3,true,true,true,true);
   TXRechnungInvoiceAdapter.SaveToFile(inv,XRechnungVersion_30x_UBL,ValidXMLExamplesPath+'Gesamtbeispiel-Alles-Skonto2-ubl-30x.xml');
-  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDEN16931Version_250,ValidXMLExamplesPath+'Gesamtbeispiel-Alles-Skonto2-ciiEN16931-25.xml');
-  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDExtendedVersion_250,ValidXMLExamplesPath+'Gesamtbeispiel-Alles-Skonto2-ciiextended-25.xml');
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := '9482348239847239874';
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := '0088';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'FR23342';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := '0002';
   TXRechnungInvoiceAdapter.SaveToFile(inv,PeppolBillingVersion_30,ValidXMLExamplesPath+'Gesamtbeispiel-Alles-Skonto2-ubl-peppol.xml');
   inv.Free;
-  inv := TInvoice.Create;
+  inv := TInvoice.Create; //CII-Varianten mit den Einschraenkungen der CII-Syntaxbindung
   TInvoiceTestCases.Gesamtbeispiel(inv,3,true,true,true,true,true);
+  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDEN16931Version_250,ValidXMLExamplesPath+'Gesamtbeispiel-Alles-Skonto2-ciiEN16931-25.xml');
+  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDExtendedVersion_250,ValidXMLExamplesPath+'Gesamtbeispiel-Alles-Skonto2-ciiextended-25.xml');
   TXRechnungInvoiceAdapter.SaveToFile(inv,XRechnungVersion_30x_UNCEFACT,ValidXMLExamplesPath+'Gesamtbeispiel-Alles-Skonto2-cii-30x.xml');
   inv.Free;
 
@@ -484,6 +500,33 @@ begin
   inv := TInvoice.Create;
   TInvoiceTestCases.VierNachkommastellen(inv);
   TXRechnungInvoiceAdapter.SaveToFile(inv,XRechnungVersion_30x_UNCEFACT,ValidXMLExamplesPath+'Vier-Nachkommastellen-cii-30x.xml');
+  inv.Free;
+
+  inv := TInvoice.Create;
+  TInvoiceTestCases.BasismengeNachkommastellen(inv);
+  TXRechnungInvoiceAdapter.SaveToFile(inv,XRechnungVersion_30x_UBL,ValidXMLExamplesPath+'Basismenge-Nachkommastellen-ubl-30x.xml');
+  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDEN16931Version_250,ValidXMLExamplesPath+'Basismenge-Nachkommastellen-ciiEN16931-25.xml');
+  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDExtendedVersion_250,ValidXMLExamplesPath+'Basismenge-Nachkommastellen-ciiextended-25.xml');
+  TXRechnungInvoiceAdapter.SaveToFile(inv,XRechnungVersion_30x_UNCEFACT,ValidXMLExamplesPath+'Basismenge-Nachkommastellen-cii-30x.xml');
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := '9482348239847239874';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := '0088';
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'FR23342';
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := '0002';
+  TXRechnungInvoiceAdapter.SaveToFile(inv,PeppolBillingVersion_30,ValidXMLExamplesPath+'Basismenge-Nachkommastellen-ubl-peppol.xml');
+  inv.Free;
+
+  //Lieferschein je Position gibt es nur in EXTENDED; die EN16931-Datei zeigt,
+  //dass die Angaben dort weggelassen werden
+  inv := TInvoice.Create;
+  TInvoiceTestCases.SammelrechnungLieferscheineJePosition(inv);
+  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDExtendedVersion_250,ValidXMLExamplesPath+'SammelrechnungLieferscheine-ciiextended-25.xml');
+  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDEN16931Version_250,ValidXMLExamplesPath+'SammelrechnungLieferscheine-ciiEN16931-25.xml');
+  inv.Free;
+
+  //Untertypen der Positionen (GROUP ohne Steuer, INFORMATION) gibt es nur in EXTENDED
+  inv := TInvoice.Create;
+  TInvoiceTestCases.TitelPositionsgruppenExtended(inv);
+  TXRechnungInvoiceAdapter.SaveToFile(inv,ZUGFeRDExtendedVersion_250,ValidXMLExamplesPath+'TitelPositionsgruppenExtended-ciiextended-25.xml');
   inv.Free;
 
   {$IFDEF USE_Valitool}
@@ -525,6 +568,13 @@ begin
         MessageDlg('Unbekannte ZUGFeRD-Version', mtError, [mbOK], 0);
         exit;
       end;
+      if version = XRechnungVersion_2x_ReadingOnly then
+      begin
+        //aeltere Versionen koennen gelesen, aber nicht mehr geschrieben werden,
+        //ein Vergleich mit der Ausgabedatei ist daher nicht moeglich
+        MessageDlg('Eingelesen als aeltere EN16931-Version, ein Vergleich ist nicht moeglich', mtInformation, [mbOK], 0);
+        exit;
+      end;
 
       xml := TFile.ReadAllText(od.FileName,TEncoding.UTF8);
       TXRechnungInvoiceAdapter.SaveToXMLStr(inv,version,xmltest);
@@ -564,6 +614,10 @@ var
   pdfresult : TMemoryStream;
   xml : String;
   {$ENDIF}
+  {$IFDEF USE_Landrix_Valitool}
+  pdfresult : TMemoryStream;
+  xml : String;
+  {$ENDIF}
 begin
   ClearBrowser;
 
@@ -572,6 +626,7 @@ begin
     if not od.Execute then
       exit;
 
+    {$IFNDEF USE_Landrix_Valitool}
     case TXRechnungValidationHelper.GetXRechnungVersion(od.FileName) of
 
       XRechnungVersion_30x_UBL,
@@ -606,6 +661,7 @@ begin
       htmlresult := '<html><body>Validation nicht erfolgreich. Siehe Verzeichnis ./Distribution/Read.Me</body></html>';
     TFile.WriteAllText(WebBrowserContentFilename,htmlresult,TEncoding.UTF8);
     ShowFileInBrowser(WebBrowserContentFilename,1);
+    {$ENDIF}
 
     {$IFDEF USE_Valitool}
     xml := TFile.ReadAllText(od.FileName,TEncoding.UTF8);
@@ -621,6 +677,46 @@ begin
       pdfresult.SaveToFile(WebBrowserContentFilenameValitoolPdf);
       pdfresult.Free;
       ShowFileInBrowser(WebBrowserContentFilenameValitoolPdf,4);
+    end;
+    {$ENDIF}
+    {$IFDEF USE_Landrix_Valitool}
+    if cbValidateWithExtern.Checked and cbValidateWithExtern.Enabled then
+    begin
+
+      var lValidationResult : TMemoryStream;
+      var lClient : TLandrixEInvoiceValidationClient;
+      var tmpFilename : String := TPath.GetTempFileName;
+      var hstrl :TStringList := TStringList.Create;
+
+      xml := TFile.ReadAllText(od.FileName,TEncoding.UTF8);
+
+      LClient := TLandrixEInvoiceValidationClient.Create(LANDRIX_VALITOOL_LICENSE,LANDRIX_VALIDATOR_URL);
+      try
+        hstrl.Text := xml;
+        hstrl.WriteBOM := false;
+        hstrl.SaveToFile(tmpFilename,TEncoding.UTF8);
+
+        if lClient.ValidateEInvoice(tmpFilename,'',lValidationResult) then
+        try
+          var pck : TLandrixEInvoiceValidationPackage := TLandrixEInvoiceValidationPackage.Create;
+          if pck.GetPdfResult(lValidationResult,pdfresult) then
+          begin
+            if pdfresult <> nil then
+            begin
+              pdfresult.SaveToFile(WebBrowserContentFilenameValitoolPdf);
+              pdfresult.Free;
+              ShowFileInBrowser(WebBrowserContentFilenameValitoolPdf,4);
+            end;
+          end;
+          pck.Free;
+
+        finally
+          DeleteFile(tmpFilename);
+          lValidationResult.Free;
+        end
+      finally
+        lClient.Free;
+      end;
     end;
     {$ENDIF}
   finally
@@ -680,10 +776,17 @@ begin
     if not od.Execute then
       exit;
 
-    GetXRechnungValidationHelperJava.SetJavaRuntimeEnvironmentPath(JavaRuntimeEnvironmentPath)
-        .SetSaxonLibPath(SaxonLibPath)
-        .SetVisualizationLibPath(VisualizationLibPath)
-        .VisualizeFile(od.FileName,cmdoutput,htmlresult);
+    //Peppol-Rechnungen bekommen das OpenPEPPOL-Stylesheet, alles andere die KoSIT-Visualisierung
+    if TXRechnungValidationHelper.GetXRechnungVersion(od.FileName) = PeppolBillingVersion_30 then
+      GetXRechnungValidationHelperJava.SetJavaRuntimeEnvironmentPath(JavaRuntimeEnvironmentPath)
+          .SetSaxonLibPath(SaxonLibPath)
+          .SetPeppolVisualizationLibPath(PeppolVisualizationLibPath)
+          .PeppolVisualizeFile(od.FileName,cmdoutput,htmlresult)
+    else
+      GetXRechnungValidationHelperJava.SetJavaRuntimeEnvironmentPath(JavaRuntimeEnvironmentPath)
+          .SetSaxonLibPath(SaxonLibPath)
+          .SetVisualizationLibPath(VisualizationLibPath)
+          .VisualizeFile(od.FileName,cmdoutput,htmlresult);
 
     Memo3.Lines.Append(cmdoutput);
 
@@ -741,6 +844,7 @@ end;
 procedure TForm1.Button9Click(Sender: TObject);
 var
   inv : TInvoice;
+  endpointtestfall : Boolean;
 begin
   if ListBox1.ItemIndex < 0 then
     exit;
@@ -750,6 +854,7 @@ begin
   Memo3.Clear;
 
   inv := TInvoice.Create;
+  endpointtestfall := false;
 
   try
     case ListBox1.ItemIndex of
@@ -769,21 +874,45 @@ begin
       13: TInvoiceTestCases.LeistungszeitraumJePosition(inv);
       14: TInvoiceTestCases.ThirdPartyPaymentBGDEX09(inv,cbAllowanceCharges.Checked);
       15: TInvoiceTestCases.VierNachkommastellen(inv);
+      //Die Endpoint-Testfaelle setzen die elektronischen Adressen selbst,
+      //Generate darf sie fuer Peppol nicht ueberschreiben
+      16: begin
+            TInvoiceTestCases.PeppolEndpointSchemeID(inv,'0088','0002');
+            endpointtestfall := true;
+          end;
+      17: begin
+            TInvoiceTestCases.PeppolEndpointSchemeID(inv,'EM','EM');
+            endpointtestfall := true;
+          end;
+      18: begin
+            TInvoiceTestCases.PeppolEndpointSchemeID(inv,'','');
+            endpointtestfall := true;
+          end;
+      //Kennungen BT-29/BT-46, siehe UBL-SR-16, VD-Valitool-23 und CII-SR-450
+      19: TInvoiceTestCases.PartyIdentifierGLN(inv,true,false,false); //nur Kreditor-/Debitor-Nr.
+      20: TInvoiceTestCases.PartyIdentifierGLN(inv,false,true,true);  //GLN und Glaeubiger-ID (BT-90)
+      21: TInvoiceTestCases.PartyIdentifierGLN(inv,true,true,false);  //Kennung und GLN
+      22: TInvoiceTestCases.BasismengeNachkommastellen(inv);
+      //Lieferschein je Position, wird nur in ZUGFeRD/Factur-X EXTENDED ausgegeben
+      23: TInvoiceTestCases.SammelrechnungLieferscheineJePosition(inv);
+      //Titel ohne Steuer und INFORMATION-Unterposition, nur ZUGFeRD/Factur-X EXTENDED
+      24: TInvoiceTestCases.TitelPositionsgruppenExtended(inv);
       else ShowMessage('Hat einer was vergessen!');
     end;
 
-    Generate(inv);
+    Generate(inv,endpointtestfall);
 
   finally
     inv.Free;
   end;
 end;
 
-procedure TForm1.Generate(inv: TInvoice);
+procedure TForm1.Generate(inv: TInvoice; _EndpointTestfall : Boolean = false);
 var
   xml,xmltest,cmdoutput,xmlresult,htmlresult,error : String;
   invtest : TInvoice;
   version : TXRechnungVersion;
+  ec : Integer;
   {$IFDEF USE_Valitool}
   pdfresult : TMemoryStream;
   {$ENDIF}
@@ -805,7 +934,8 @@ begin
       else version := XRechnungVersion_30x_UNCEFACT;
     end;
 
-    if version = PeppolBillingVersion_30 then
+    //die Endpoint-Testfaelle bringen ihre eigenen elektronischen Adressen mit
+    if (version = PeppolBillingVersion_30) and (not _EndpointTestfall) then
     begin
       inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := '9482348239847239874';
       inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := '0088';
@@ -813,10 +943,19 @@ begin
       inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := '0002';
     end;
 
-    if not TXRechnungInvoiceAdapter.ConsistencyCheck(inv,version) then
+    if not TXRechnungInvoiceAdapter.ConsistencyCheck(inv,version,ec) then
     begin
-      MessageDlg('Die Rechnung enthaelt fuer das gewaehlte Format ungueltige Werte', mtError, [mbOK], 0);
-      exit;
+      //bei den Endpoint-Testfaellen ist die Ablehnung Teil des erwarteten Ergebnisses,
+      //das Dokument wird zur Kontrolle der Ausgabe auf Wunsch trotzdem erzeugt
+      if not _EndpointTestfall then
+      begin
+        MessageDlg('Die Rechnung enthaelt fuer das gewaehlte Format ungueltige Werte (ErrorCode '+
+                   IntToStr(ec)+')', mtError, [mbOK], 0);
+        exit;
+      end;
+      if MessageDlg('ConsistencyCheck abgelehnt (ErrorCode '+IntToStr(ec)+
+                    '). Dokument trotzdem erzeugen?', mtConfirmation, [mbYes,mbNo], 0) <> mrYes then
+        exit;
     end;
 
     case version of
@@ -928,11 +1067,7 @@ begin
         GetXRechnungValidationHelperJava.SetJavaRuntimeEnvironmentPath(JavaRuntimeEnvironmentPath)
             .SetValidatorLibPath(ValidatorLibPath)
             .SetValidatorConfigurationPath(DistributionBasePath+'validator-configuration-zugferd'+PathDelim)
-            .Validate(ExtractFilePath(Application.ExeName)+'ZUGFeRD-Extended.xml',cmdoutput,xmlresult,htmlresult);
-
-//        GetXRechnungValidationHelperJava.SetJavaRuntimeEnvironmentPath(JavaRuntimeEnvironmentPath)
-//            .SetMustangprojectLibPath(MustangLibPath)
-//            .MustangValidateFile(ExtractFilePath(Application.ExeName)+'ZUGFeRD-Extended.xml',cmdoutput,xmlresult);
+            .Validate(xml,cmdoutput,xmlresult,htmlresult);
 
         Memo3.Lines.Append(cmdoutput);
 
@@ -973,7 +1108,6 @@ begin
 
       Memo2.Lines.Text := xml;
 
-      {
       if cbValidateWithJava.Checked then
       begin
         TXRechnungInvoiceAdapter.SaveToFile(inv,version,ExtractFilePath(Application.ExeName)+'ZUGFeRD-EN16931.xml');
@@ -981,11 +1115,7 @@ begin
         GetXRechnungValidationHelperJava.SetJavaRuntimeEnvironmentPath(JavaRuntimeEnvironmentPath)
             .SetValidatorLibPath(ValidatorLibPath)
             .SetValidatorConfigurationPath(DistributionBasePath+'validator-configuration-zugferd'+PathDelim)
-            .ValidateFile(ExtractFilePath(Application.ExeName)+'ZUGFeRD-EN16931.xml',cmdoutput,xmlresult,htmlresult);
-
-        //        GetXRechnungValidationHelperJava.SetJavaRuntimeEnvironmentPath(JavaRuntimeEnvironmentPath)
-        //            .SetMustangprojectLibPath(MustangLibPath)
-        //            .MustangValidateFile(ExtractFilePath(Application.ExeName)+'ZUGFeRD-Extended.xml',cmdoutput,xmlresult);
+            .Validate(xml,cmdoutput,xmlresult,htmlresult); // Validate erwartet den XML-Inhalt, ValidateFile den Dateinamen
 
         Memo3.Lines.Append(cmdoutput);
 
@@ -1001,7 +1131,6 @@ begin
         TFile.WriteAllText(WebBrowserContentFilename,htmlresult,TEncoding.UTF8);
         ShowFileInBrowser(WebBrowserContentFilename,1);
       end;
-      }
 
       invtest := TInvoice.Create;
       try
@@ -1038,11 +1167,8 @@ begin
 
         if htmlresult <> '' then
         begin
-          //if cbVisualizeWithJava.Checked then
-          //begin
-          //  ShowXMLAsHtml(xml);
-          //  ShowXMLAsPdf(xml);
-          //end;
+          if cbVisualizeWithJava.Checked then
+            ShowPeppolXMLAsHtml(xml);
         end else
           htmlresult := '<html><body>Validation nicht erfolgreich. Siehe Verzeichnis ./Distribution/Read.Me</body></html>';
         TFile.WriteAllText(WebBrowserContentFilename,htmlresult,TEncoding.UTF8);
@@ -1124,7 +1250,6 @@ begin
         lClient.Free;
       end;
     end;
-
     {$ENDIF}
   finally
     Screen.Cursor := crDefault;
@@ -1171,6 +1296,32 @@ begin
       .SetSaxonLibPath(SaxonLibPath)
       .SetVisualizationLibPath(VisualizationLibPath)
       .Visualize(_Content,cmdoutput,htmlresult);
+
+  Memo3.Lines.Append(cmdoutput);
+
+  if htmlresult = '' then
+    htmlresult := '<html><body>Visualisierung nicht erfolgreich. Siehe Verzeichnis ./Distribution/Read.Me</body></html>';
+  TFile.WriteAllText(WebBrowserContentFilenameHtml,htmlresult,TEncoding.UTF8);
+
+{$IFDEF USE_EDGE_BROWSER}
+  EdgeBrowser2.Navigate('file:///'+WebBrowserContentFilenameHtml);
+{$ELSE}
+  ShellExecute(0,'open',PChar(WebBrowserContentFilenameHtml),'','',SW_SHOWNORMAL);
+{$IFEND}
+end;
+
+//Peppol BIS Billing 3.0 mit dem offiziellen OpenPEPPOL-Stylesheet darstellen.
+//Die KoSIT-Visualisierung (ShowXMLAsHtml) verarbeitet diese Rechnungen zwar auch,
+//beschriftet sie aber mit den deutschen XRechnung-Begriffen; einen PDF-Zweig gibt es
+//beim Peppol-Stylesheet nicht, es liefert direkt HTML.
+procedure TForm1.ShowPeppolXMLAsHtml(_Content: String);
+var
+  cmdoutput,htmlresult : String;
+begin
+  GetXRechnungValidationHelperJava.SetJavaRuntimeEnvironmentPath(JavaRuntimeEnvironmentPath)
+      .SetSaxonLibPath(SaxonLibPath)
+      .SetPeppolVisualizationLibPath(PeppolVisualizationLibPath)
+      .PeppolVisualize(_Content,cmdoutput,htmlresult);
 
   Memo3.Lines.Append(cmdoutput);
 

@@ -91,6 +91,7 @@
       <cac:TaxCategory>
         <cbc:ID>AE</cbc:ID>
         <cbc:Percent>0.00</cbc:Percent>
+        <cbc:TaxExemptionReasonCode>VATEX-EU-AE</cbc:TaxExemptionReasonCode>
         <cbc:TaxExemptionReason>Hiermit erlaube ich mir folgende Rechnung fuer Bauleistungen zu stellen. Die Umsatzsteuer fuer diese Leistung schuldet nach Paragraph 13b UStG der Leistungsempfaenger.</cbc:TaxExemptionReason>
         <cac:TaxScheme>
           <cbc:ID>VAT</cbc:ID>
@@ -104,7 +105,6 @@
     <cbc:TaxInclusiveAmount currencyID="EUR">200.00</cbc:TaxInclusiveAmount>
     <cbc:AllowanceTotalAmount currencyID="EUR">0.00</cbc:AllowanceTotalAmount>
     <cbc:ChargeTotalAmount currencyID="EUR">0.00</cbc:ChargeTotalAmount>
-    <cbc:PrepaidAmount currencyID="EUR">0.00</cbc:PrepaidAmount>
     <cbc:PayableAmount currencyID="EUR">200.00</cbc:PayableAmount>
   </cac:LegalMonetaryTotal>
   <cac:InvoiceLine>

@@ -126,7 +126,7 @@ begin
   end;
 
   inv.PaymentTermsType := iptt_Net;
-  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[DateToStr(inv.InvoiceDueDate)]);
+  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[FormatDateTime('dd.mm.yyyy',inv.InvoiceDueDate)]);
 
   with inv.InvoiceLines.AddInvoiceLine do
   begin
@@ -295,7 +295,7 @@ begin
   end;
 
   inv.PaymentTermsType := iptt_Net;
-  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[DateToStr(inv.InvoiceDueDate)]);
+  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[FormatDateTime('dd.mm.yyyy',inv.InvoiceDueDate)]);
 
   with inv.InvoiceLines.AddInvoiceLine do
   begin
@@ -362,7 +362,7 @@ begin
   inv.ProjectReference := 'PR456789';
   inv.ReceiptDocumentReference := 'RDR456789';
   inv.ContractDocumentReference := 'V876543210';
-  inv.DeliveryReceiptNumber := 'Lieferschein123';
+  inv.DeliveryReceiptNumber := 'Versandanzeige123'; //BT-16 ist die Versandanzeige, nicht der Lieferschein
   inv.BuyerAccountingReference := '1234';
 
   inv.AccountingSupplierParty.Name := 'Verkaeufername'; //wenn von RegistrationName abweichend
@@ -440,7 +440,7 @@ begin
     1 :
     begin
       inv.PaymentTermsType := iptt_Net;
-      inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[DateToStr(inv.InvoiceDueDate)]);
+      inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[FormatDateTime('dd.mm.yyyy',inv.InvoiceDueDate)]);
     end;
     2 :
     begin
@@ -525,6 +525,8 @@ begin
     ID := '001'; //Positionsnummer
     GlobalID_EAN_GTIN := '978381582086'; //EAN
     //Note : String; //Hinweis
+    ObjectIdentifier := '4500123456'; //BT-128 Objektkennung der Position
+    ObjectIdentifierSchemeID := 'ON'; //BT-128-1 UNTDID 1153, ON = Bestellnummer des Kaeufers
     Name := 'Kurzinfo Artikel 1'; //Kurztext
     Description := 'Langtext Artikel'+#13#10+'Zeile 2'+#13#10+'Zeile 3'; //Laengere Beschreibung
     Quantity := 2; //Menge
@@ -807,11 +809,12 @@ begin
   end;
 
   inv.PaymentTermsType := iptt_Net;
-  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[DateToStr(inv.InvoiceDueDate)]);
+  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[FormatDateTime('dd.mm.yyyy',inv.InvoiceDueDate)]);
 
   with inv.InvoiceLines.AddInvoiceLine do
   begin
     ID := '01'; //Positionsnummer
+    ObjectIdentifier := 'OBJ-4711'; //BT-128 ohne Schema-Kennung
     Name := 'Provision'; //Kurztext
     Description := 'Provision'; //Laengere Beschreibung
     Quantity := 1; //Menge
@@ -917,7 +920,7 @@ begin
   end;
 
   inv.PaymentTermsType := iptt_Net;
-  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[DateToStr(inv.InvoiceDueDate)]);
+  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[FormatDateTime('dd.mm.yyyy',inv.InvoiceDueDate)]);
 
   with inv.InvoiceLines.AddInvoiceLine do
   begin
@@ -1023,7 +1026,7 @@ begin
   end;
 
   inv.PaymentTermsType := iptt_Net;
-  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[DateToStr(inv.InvoiceDueDate)]);
+  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[FormatDateTime('dd.mm.yyyy',inv.InvoiceDueDate)]);
 
   with inv.InvoiceLines.AddInvoiceLine do
   begin
@@ -1543,7 +1546,7 @@ begin
   end;
 
   inv.PaymentTermsType := iptt_Net;
-  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[DateToStr(inv.InvoiceDueDate)]);
+  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[FormatDateTime('dd.mm.yyyy',inv.InvoiceDueDate)]);
 
   with inv.InvoiceLines.AddInvoiceLine do
   begin
@@ -2073,7 +2076,7 @@ begin
   end;
 
   inv.PaymentTermsType := iptt_Net;
-  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[DateToStr(inv.InvoiceDueDate)]);
+  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[FormatDateTime('dd.mm.yyyy',inv.InvoiceDueDate)]);
 
   with inv.InvoiceLines.AddInvoiceLine do
   begin

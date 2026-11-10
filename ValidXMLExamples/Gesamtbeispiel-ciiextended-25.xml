@@ -15,7 +15,7 @@
       <udt:DateTimeString format="102">20260830</udt:DateTimeString>
     </ram:IssueDateTime>
     <ram:IncludedNote>
-      <ram:Content>Geschaeftsfuehrer Herr Meier - HRB 789</ram:Content>
+      <ram:Content>Geschäftsführer Herr Meier - HRB 789</ram:Content>
       <ram:SubjectCode>REG</ram:SubjectCode>
     </ram:IncludedNote>
   </rsm:ExchangedDocument>
@@ -40,6 +40,9 @@ Zeile 3</ram:Description>
           <ram:Description>Key2</ram:Description>
           <ram:Value>123</ram:Value>
         </ram:ApplicableProductCharacteristic>
+        <ram:DesignatedProductClassification>
+          <ram:ClassCode listID="GB">FRACHT</ram:ClassCode>
+        </ram:DesignatedProductClassification>
         <ram:OriginTradeCountry>
           <ram:ID>DE</ram:ID>
         </ram:OriginTradeCountry>
@@ -74,6 +77,11 @@ Zeile 3</ram:Description>
         <ram:SpecifiedTradeSettlementLineMonetarySummation>
           <ram:LineTotalAmount>100.00</ram:LineTotalAmount>
         </ram:SpecifiedTradeSettlementLineMonetarySummation>
+        <ram:AdditionalReferencedDocument>
+          <ram:IssuerAssignedID>4500123456</ram:IssuerAssignedID>
+          <ram:TypeCode>130</ram:TypeCode>
+          <ram:ReferenceTypeCode>ON</ram:ReferenceTypeCode>
+        </ram:AdditionalReferencedDocument>
         <ram:ReceivableSpecifiedTradeAccountingAccount>
           <ram:ID>6171175.1</ram:ID>
         </ram:ReceivableSpecifiedTradeAccountingAccount>
@@ -89,6 +97,10 @@ Zeile 3</ram:Description>
         <ram:Description>Langtext Artikel 2
 Zeile 2
 Zeile 3</ram:Description>
+        <ram:DesignatedProductClassification>
+          <ram:ClassCode listID="HS" listVersionID="2022">23456789123</ram:ClassCode>
+          <ram:ClassName>Zolltarifnummer</ram:ClassName>
+        </ram:DesignatedProductClassification>
         <ram:OriginTradeCountry>
           <ram:ID>DE</ram:ID>
         </ram:OriginTradeCountry>
@@ -124,9 +136,9 @@ Zeile 3</ram:Description>
     <ram:ApplicableHeaderTradeAgreement>
       <ram:BuyerReference>991-01484-64</ram:BuyerReference>
       <ram:SellerTradeParty>
-        <ram:Name>VerkaeuferRegistrationName</ram:Name>
+        <ram:Name>VerkäuferRegistrationName</ram:Name>
         <ram:SpecifiedLegalOrganization>
-          <ram:TradingBusinessName>Verkaeufername</ram:TradingBusinessName>
+          <ram:TradingBusinessName>Verkäufername</ram:TradingBusinessName>
         </ram:SpecifiedLegalOrganization>
         <ram:DefinedTradeContact>
           <ram:PersonName>Meier</ram:PersonName>
@@ -139,10 +151,10 @@ Zeile 3</ram:Description>
         </ram:DefinedTradeContact>
         <ram:PostalTradeAddress>
           <ram:PostcodeCode>01234</ram:PostcodeCode>
-          <ram:LineOne>Verkaeuferstrasse 1</ram:LineOne>
+          <ram:LineOne>Verkäuferstraße 1</ram:LineOne>
           <ram:LineTwo>Hinterhaus</ram:LineTwo>
           <ram:LineThree>Gate 64</ram:LineThree>
-          <ram:CityName>Verkaeuferstadt</ram:CityName>
+          <ram:CityName>Verkäuferstadt</ram:CityName>
           <ram:CountryID>DE</ram:CountryID>
           <ram:CountrySubDivisionName>Sachsen</ram:CountrySubDivisionName>
         </ram:PostalTradeAddress>
@@ -157,12 +169,12 @@ Zeile 3</ram:Description>
         </ram:SpecifiedTaxRegistration>
       </ram:SellerTradeParty>
       <ram:BuyerTradeParty>
-        <ram:Name>Kaeufername</ram:Name>
+        <ram:Name>Käufername</ram:Name>
         <ram:SpecifiedLegalOrganization>
           <ram:ID>HRB 456</ram:ID>
         </ram:SpecifiedLegalOrganization>
         <ram:DefinedTradeContact>
-          <ram:PersonName>Mueller</ram:PersonName>
+          <ram:PersonName>Müller</ram:PersonName>
           <ram:TelephoneUniversalCommunication>
             <ram:CompleteNumber>030 1508</ram:CompleteNumber>
           </ram:TelephoneUniversalCommunication>
@@ -172,8 +184,8 @@ Zeile 3</ram:Description>
         </ram:DefinedTradeContact>
         <ram:PostalTradeAddress>
           <ram:PostcodeCode>05678</ram:PostcodeCode>
-          <ram:LineOne>Kaeuferstrasse 1</ram:LineOne>
-          <ram:CityName>Kaeuferstadt</ram:CityName>
+          <ram:LineOne>Käuferstraße 1</ram:LineOne>
+          <ram:CityName>Käuferstadt</ram:CityName>
           <ram:CountryID>DE</ram:CountryID>
         </ram:PostalTradeAddress>
         <ram:URIUniversalCommunication>
@@ -212,7 +224,7 @@ Zeile 3</ram:Description>
         </ram:OccurrenceDateTime>
       </ram:ActualDeliverySupplyChainEvent>
       <ram:DespatchAdviceReferencedDocument>
-        <ram:IssuerAssignedID>Lieferschein123</ram:IssuerAssignedID>
+        <ram:IssuerAssignedID>Versandanzeige123</ram:IssuerAssignedID>
         <ram:FormattedIssueDateTime>
           <qdt:DateTimeString format="102">20260825</qdt:DateTimeString>
         </ram:FormattedIssueDateTime>
@@ -278,7 +290,6 @@ Zeile 3</ram:Description>
         <ram:TaxBasisTotalAmount>200.00</ram:TaxBasisTotalAmount>
         <ram:TaxTotalAmount currencyID="EUR">26.00</ram:TaxTotalAmount>
         <ram:GrandTotalAmount>226.00</ram:GrandTotalAmount>
-        <ram:TotalPrepaidAmount>0.00</ram:TotalPrepaidAmount>
         <ram:DuePayableAmount>226.00</ram:DuePayableAmount>
       </ram:SpecifiedTradeSettlementHeaderMonetarySummation>
       <ram:ReceivableSpecifiedTradeAccountingAccount>

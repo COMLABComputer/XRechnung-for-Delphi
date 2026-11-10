@@ -50,12 +50,15 @@ type
     class procedure Gesamtbeispiel(inv : TInvoice; Zahlungsbedingung : Integer;
                        NachlaesseZuschlaegeVerwenden, AbschlagsrechnungAbziehen,
                        AnhaengeVerwenden, LieferanschriftAusgeben : Boolean;
+                       //true fuer alle CII-Ausgaben (XRechnung CII und ZUGFeRD): die
+                       //EN16931-Syntaxbindung an CII D16B kennt Einschraenkungen, die es in UBL nicht gibt
                        XRechnungCII : Boolean = false);
     class procedure Kleinunternehmerregelung(inv : TInvoice);
     class procedure Paragr13b(inv : TInvoice);
     class procedure Austauschteilesteuer(inv : TInvoice);
     class procedure Differenzbesteuerung(inv : TInvoice);
     class procedure TitelPositionsgruppen(inv : TInvoice);
+    class procedure TitelPositionsgruppenExtended(inv : TInvoice); //nur ZUGFeRD/Factur-X EXTENDED
     class procedure MinimalbeispielB2BOhneLeitwegID(inv : TInvoice);
     class procedure Rechnungskorrektur(inv : TInvoice);
     class procedure Gutschrift(inv : TInvoice);
@@ -65,9 +68,23 @@ type
     class procedure PayPalOderAndereOnlinezahlungsdienstleister(inv : TInvoice);
     class procedure Kreditkarte(inv : TInvoice);
     class procedure LeistungszeitraumJePosition(inv : TInvoice);
+    class procedure SammelrechnungLieferscheineJePosition(inv : TInvoice); //nur ZUGFeRD/Factur-X EXTENDED
     class procedure ThirdPartyPaymentBGDEX09(inv : TInvoice; //Durchlaufender Posten
                        NachlaesseZuschlaegeVerwenden : Boolean);
     class procedure VierNachkommastellen(inv : TInvoice);
+    //Preiseinheit BT-149 mit mehr als 2 Nachkommastellen (0.001 m3), frueher auf 0.00 gerundet
+    class procedure BasismengeNachkommastellen(inv : TInvoice);
+    //Elektronische Adressen BT-34/BT-49 mit frei waehlbarem Schema: unter Peppol ist
+    //weder 'EM' noch ein leeres Schema zulaessig, die XRechnung-Profile ersetzen ein
+    //leeres Schema dagegen weiterhin durch 'EM'
+    class procedure PeppolEndpointSchemeID(inv : TInvoice;
+                       const SchemeIDVerkaeufer, SchemeIDKaeufer : String);
+    //Kennungen BT-29/BT-46: die Kennung wird in UBL ohne schemeID ausgegeben, eine GLN
+    //gehoert in GlobalIdentifierSellerBuyer. In UBL ist je Partei nur eine Kennung zulaessig
+    //(UBL-SR-16, VD-Valitool-23), in CII beim Kaeufer (CII-SR-450) - dort hat die GLN Vorrang,
+    //ausser unter ZUGFeRD-Extended
+    class procedure PartyIdentifierGLN(inv : TInvoice;
+                       KennungVerwenden, GLNVerwenden, GlaeubigerIDVerwenden : Boolean);
   end;
 
 implementation
@@ -160,7 +177,7 @@ begin
   end;
 
   inv.PaymentTermsType := iptt_Net;
-  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[DateToStr(inv.InvoiceDueDate)]);
+  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[FormatDateTime('dd.mm.yyyy',inv.InvoiceDueDate)]);
 
   with inv.InvoiceLines.AddInvoiceLine do
   begin
@@ -331,7 +348,7 @@ begin
   end;
 
   inv.PaymentTermsType := iptt_Net;
-  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[DateToStr(inv.InvoiceDueDate)]);
+  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[FormatDateTime('dd.mm.yyyy',inv.InvoiceDueDate)]);
 
   with inv.InvoiceLines.AddInvoiceLine do
   begin
@@ -391,7 +408,7 @@ begin
   inv.BuyerReference := '991-01484-64'; //Leitweg-ID - wird vom Rechnungsempfaenger dem Rechnungsersteller zur Verfuegung gestellt
   with inv.Notes.AddNote do //Sollte ausgefuellt werden
   begin
-    Content := 'Geschaeftsfuehrer Herr Meier - HRB 789';
+    Content := 'Geschäftsführer Herr Meier - HRB 789';
     SubjectCode := insc_REG;
   end;
   inv.PurchaseOrderReference := 'B0815'; //Bestell-Nr. optional
@@ -399,18 +416,18 @@ begin
   inv.ProjectReference := 'PR456789';
   inv.ReceiptDocumentReference := 'RDR456789';
   inv.ContractDocumentReference := 'V876543210';
-  inv.DeliveryReceiptNumber := 'Lieferschein123';
+  inv.DeliveryReceiptNumber := 'Versandanzeige123'; //BT-16 ist die Versandanzeige, nicht der Lieferschein
   inv.DeliveryReceiptDate := inv.InvoiceIssueDate-5;
   inv.DeliveryReceiptNumberExtended := 'Lieferschein123'; //Falls man es benötigt unter ZUGFeRD-Extended
   inv.DeliveryReceiptDateExtended := inv.InvoiceIssueDate-5; //Falls man es benötigt unter ZUGFeRD-Extended
   inv.BuyerAccountingReference := '1234';
 
-  inv.AccountingSupplierParty.Name := 'Verkaeufername'; //wenn von RegistrationName abweichend
-  inv.AccountingSupplierParty.RegistrationName := 'VerkaeuferRegistrationName'; //Sollte ausgefuellt werden
+  inv.AccountingSupplierParty.Name := 'Verkäufername'; //wenn von RegistrationName abweichend
+  inv.AccountingSupplierParty.RegistrationName := 'VerkäuferRegistrationName'; //Sollte ausgefuellt werden
   inv.AccountingSupplierParty.CompanyID :=  '';
-  inv.AccountingSupplierParty.Address.StreetName := 'Verkaeuferstrasse 1';
+  inv.AccountingSupplierParty.Address.StreetName := 'Verkäuferstraße 1';
   inv.AccountingSupplierParty.Address.AdditionalStreetName := 'Hinterhaus'; //optional
-  inv.AccountingSupplierParty.Address.City := 'Verkaeuferstadt';
+  inv.AccountingSupplierParty.Address.City := 'Verkäuferstadt';
   inv.AccountingSupplierParty.Address.PostalZone := '01234';
   inv.AccountingSupplierParty.Address.CountrySubentity := 'Sachsen';     //optional
   inv.AccountingSupplierParty.Address.AddressLine := 'Gate 64';  //optional
@@ -428,17 +445,17 @@ begin
   inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
 
   inv.AccountingCustomerParty.Name := '';
-  inv.AccountingCustomerParty.RegistrationName := 'Kaeufername'; //Sollte ausgefuellt werden
+  inv.AccountingCustomerParty.RegistrationName := 'Käufername'; //Sollte ausgefuellt werden
   inv.AccountingCustomerParty.CompanyID :=  'HRB 456';
-  inv.AccountingCustomerParty.Address.StreetName := 'Kaeuferstrasse 1';
-  inv.AccountingCustomerParty.Address.City := 'Kaeuferstadt';
+  inv.AccountingCustomerParty.Address.StreetName := 'Käuferstraße 1';
+  inv.AccountingCustomerParty.Address.City := 'Käuferstadt';
   inv.AccountingCustomerParty.Address.PostalZone := '05678';
   inv.AccountingCustomerParty.Address.CountryCode := 'DE';
   //bei AccountingCustomerParty nur eine VAT von beiden
   //Die EN16931 laesst ausschliesslich die UStID zu
   inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
   //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
-  inv.AccountingCustomerParty.ContactName := 'Mueller';
+  inv.AccountingCustomerParty.ContactName := 'Müller';
   inv.AccountingCustomerParty.ContactTelephone := '030 1508';
   inv.AccountingCustomerParty.ContactElectronicMail := 'mueller@kunde.de';
   inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
@@ -453,7 +470,7 @@ begin
   begin
     inv.DeliveryInformation.Name := 'Firma die es bekommt';
     inv.DeliveryInformation.LocationIdentifier := '4005998000007';
-    inv.DeliveryInformation.Address.StreetName := 'Lieferstrasse 1';
+    inv.DeliveryInformation.Address.StreetName := 'Lieferstraße 1';
     inv.DeliveryInformation.Address.City := 'Lieferstadt';
     inv.DeliveryInformation.Address.PostalZone := '05678';
     inv.DeliveryInformation.Address.CountryCode := 'DE';
@@ -482,7 +499,7 @@ begin
     1 :
     begin
       inv.PaymentTermsType := iptt_Net;
-      inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[DateToStr(inv.InvoiceDueDate)]);
+      inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[FormatDateTime('dd.mm.yyyy',inv.InvoiceDueDate)]);
     end;
     2 :
     begin
@@ -519,6 +536,14 @@ begin
       inv.PaymentTermsType := iptt_None;
   end;
 
+  //Gegenbeispiel zu BT-17: ein Eintrag ohne Kennung wird beim Schreiben uebersprungen,
+  //der erste Eintrag mit Kennung wird ausgegeben, jeder weitere wird verworfen -
+  //BT-17 ist nur einmal zulaessig (UBL cac:OriginatorDocumentReference 0..1, CII-SR-457)
+  with inv.Attachments.AddAttachment(TInvoiceAttachmentType.iat_application_None) do
+  begin
+    ID := ''; //ohne Kennung
+    TypeCode := iatc_50;
+  end;
   with inv.Attachments.AddAttachment(TInvoiceAttachmentType.iat_application_None) do
   begin
     ID := 'BT-17 12345';
@@ -526,8 +551,20 @@ begin
   end;
   with inv.Attachments.AddAttachment(TInvoiceAttachmentType.iat_application_None) do
   begin
+    ID := 'BT-17 67890'; //zweite Ausschreibungs-/Losreferenz
+    TypeCode := iatc_50;
+  end;
+  //Gegenbeispiel zu BT-18 analog BT-17: nur der erste Eintrag mit Kennung wird ausgegeben
+  //(UBL-SR-04, CII-SR-458)
+  with inv.Attachments.AddAttachment(TInvoiceAttachmentType.iat_application_None) do
+  begin
     ID := 'BT-18 12345';
     TypeCode := iatc_130; //BT-18 "Rechnungsdatenblatt" wird benutzt, um eine vom Verkäufer angegebene Kennung für ein Objekt zu referenzieren.
+  end;
+  with inv.Attachments.AddAttachment(TInvoiceAttachmentType.iat_application_None) do
+  begin
+    ID := 'BT-18 67890'; //zweite Objektkennung
+    TypeCode := iatc_130;
   end;
   //Validator für XRechnung UBL meckert BT-122 an, aber eigentlich ist es korrekt
   //Validator validool.org validiert korrekt
@@ -578,6 +615,8 @@ begin
     ID := '001'; //Positionsnummer
     GlobalID_EAN_GTIN := '4006381333931'; //EAN
     //Note : String; //Hinweis
+    ObjectIdentifier := '4500123456'; //BT-128 Objektkennung der Position
+    ObjectIdentifierSchemeID := 'ON'; //BT-128-1 UNTDID 1153, ON = Bestellnummer des Kaeufers
     Name := 'Kurzinfo Artikel 1'; //Kurztext
     Description := 'Langtext Artikel'+#13#10+'Zeile 2'+#13#10+'Zeile 3'; //Laengere Beschreibung
     Quantity := 2; //Menge
@@ -605,6 +644,12 @@ begin
     begin
       Name := 'Key2';
       Value := '123';
+    end;
+    //BT-158 Kennung der Artikelklassifizierung, z.B. Kennzeichnung als Frachtartikel
+    with ItemClassifications.AddItemClassification do
+    begin
+      ClassCode := 'FRACHT'; //BT-158
+      ListID := 'GB'; //BT-158-1 Pflichtangabe
     end;
     OriginTradeCountry := 'DE';
   end;
@@ -634,6 +679,15 @@ begin
     BaseQuantity := 0; //Preiseinheit 0 = wird nicht ausgegeben, entspricht default = 1
     BaseQuantityUnitCode := TInvoiceUnitCode.iuc_None; //Preiseinheit Mengeneinheit
     LineAmount := 100;
+    //BT-158 mit Version des Klassifizierungsschemas,
+    //ClassificationName wird nur im Profil ZUGFeRD/Factur-X EXTENDED ausgegeben
+    with ItemClassifications.AddItemClassification do
+    begin
+      ClassCode := '23456789123'; //BT-158
+      ListID := 'HS'; //BT-158-1 Harmonisiertes System
+      ListVersionID := '2022'; //BT-158-2
+      ClassificationName := 'Zolltarifnummer';
+    end;
     OriginTradeCountry := 'DE';
 
     //Nachlass zur Position generieren
@@ -711,7 +765,7 @@ begin
     begin
       ChargeIndicator := true;
       ReasonCodeCharge := TInvoiceSpecialServiceDescriptionCode.issdc_AAA_Telecommunication;
-      Reason := 'Zuschlag fuer Kommunikation';
+      Reason := 'Zuschlag für Kommunikation';
       BaseAmount := 10.00;
       MultiplierFactorNumeric := 10; //10 Prozent auf 10 EUR
       Amount := 1.00;
@@ -801,6 +855,13 @@ begin
   inv.InvoicePeriodStartDate := TInvoiceTestCases.InvoicePeriodStartDate;
   inv.InvoicePeriodEndDate := TInvoiceTestCases.InvoicePeriodEndDate;
   inv.InvoiceTypeCode := TInvoiceTypeCode.itc_CreditNote; //Gutschrift
+  //BT-11 wird in der Gutschrift als cac:AdditionalDocumentReference mit DocumentTypeCode 50 ausgegeben
+  inv.ProjectReference := 'PR-123';
+  with inv.Attachments.AddAttachment(TInvoiceAttachmentType.iat_application_None) do
+  begin
+    ID := 'BT-17 12345';
+    TypeCode := iatc_50; //BT-17 steht in der Gutschrift hinter cac:AdditionalDocumentReference
+  end;
   inv.InvoiceCurrencyCode := 'EUR';
   inv.Notes.AddNote.Content := 'Notiz zur Gutschrift';
   inv.TaxCurrencyCode := 'EUR';
@@ -861,11 +922,12 @@ begin
   end;
 
   inv.PaymentTermsType := iptt_Net;
-  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[DateToStr(inv.InvoiceDueDate)]);
+  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[FormatDateTime('dd.mm.yyyy',inv.InvoiceDueDate)]);
 
   with inv.InvoiceLines.AddInvoiceLine do
   begin
     ID := '01'; //Positionsnummer
+    ObjectIdentifier := 'OBJ-4711'; //BT-128 ohne Schema-Kennung
     Name := 'Provision'; //Kurztext
     Description := 'Provision'; //Laengere Beschreibung
     Quantity := 1; //Menge
@@ -974,7 +1036,7 @@ begin
   end;
 
   inv.PaymentTermsType := iptt_Net;
-  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[DateToStr(inv.InvoiceDueDate)]);
+  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[FormatDateTime('dd.mm.yyyy',inv.InvoiceDueDate)]);
 
   with inv.InvoiceLines.AddInvoiceLine do
   begin
@@ -1000,6 +1062,7 @@ begin
     TaxPercent := 0.0;
     TaxCategory := TInvoiceDutyTaxFeeCategoryCode.idtfcc_K_VATExemptForEEAIntracommunitySupplyOfGoodsAndServices;
     TaxExemptionReason := 'Keine Ausweisung der Umsatzsteuer - innergemeinschaftliche Lieferung EU';
+    TaxExemptionReasonCode := 'VATEX-EU-IC'; //BT-121, optional neben dem Text (BR-IC-10)
     TaxableAmount := 5000.00;
     TaxAmount     := 00.00;
   end;
@@ -1083,7 +1146,7 @@ begin
   end;
 
   inv.PaymentTermsType := iptt_Net;
-  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[DateToStr(inv.InvoiceDueDate)]);
+  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[FormatDateTime('dd.mm.yyyy',inv.InvoiceDueDate)]);
 
   with inv.InvoiceLines.AddInvoiceLine do
   begin
@@ -1444,6 +1507,139 @@ begin
   inv.PayableAmount := 856.80;      //Summe Zahlbar MwSt
 end;
 
+class procedure TInvoiceTestCases.SammelrechnungLieferscheineJePosition(inv: TInvoice);
+var
+  suc : Boolean;
+begin
+  //Sammelrechnung ueber mehrere Lieferscheine: Lieferscheinnummer, Lieferscheindatum und
+  //Lieferdatum werden je Position angegeben.
+  //ACHTUNG: Das geht NUR im Profil ZUGFeRD/Factur-X EXTENDED. EN16931, XRechnung (UBL und CII)
+  //und Peppol kennen keine Lieferangaben auf Positionsebene; dort werden DeliveryNoteNumber,
+  //DeliveryNoteDate und ActualDeliveryDate der Positionen beim Schreiben ignoriert.
+  inv.InvoiceNumber := 'R2026-0930';
+  inv.InvoiceIssueDate := EncodeDate(2026,9,30); //Rechnungsdatum
+  inv.InvoiceDueDate := EncodeDate(2026,10,30);  //Faelligkeitsdatum
+  //Abrechnungszeitraum der Sammelrechnung, deckt alle Lieferungen ab
+  inv.InvoicePeriodStartDate := EncodeDate(2026,9,1);
+  inv.InvoicePeriodEndDate := EncodeDate(2026,9,30);
+  inv.InvoiceTypeCode := TInvoiceTypeCode.itc_CommercialInvoice;
+  inv.InvoiceCurrencyCode := 'EUR';
+  inv.TaxCurrencyCode := 'EUR';
+  inv.BuyerReference := TInvoiceEmptyLeitwegID.NON_EXISTENT; //B2B ohne Leitweg-ID
+  with inv.Notes.AddNote do
+  begin
+    Content := 'Geschaeftsfuehrer Herr Meier - HRB 789';
+    SubjectCode := insc_REG;
+  end;
+
+  inv.AccountingSupplierParty.Name := '';
+  inv.AccountingSupplierParty.RegistrationName := 'Verkaeufername';
+  inv.AccountingSupplierParty.CompanyID :=  '';
+  inv.AccountingSupplierParty.Address.StreetName := 'Verkaeuferstrasse 1';
+  inv.AccountingSupplierParty.Address.City := 'Verkaeuferstadt';
+  inv.AccountingSupplierParty.Address.PostalZone := '01234';
+  inv.AccountingSupplierParty.Address.CountryCode := 'DE';
+  inv.AccountingSupplierParty.VATCompanyID := 'DE123456788';
+  inv.AccountingSupplierParty.VATCompanyNumber := '222/111/4444';
+  inv.AccountingSupplierParty.ContactName := 'Meier';
+  inv.AccountingSupplierParty.ContactTelephone := '030 0815';
+  inv.AccountingSupplierParty.ContactElectronicMail := 'meier@company.com';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@company.com';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
+
+  inv.AccountingCustomerParty.Name := '';
+  inv.AccountingCustomerParty.RegistrationName := 'Kaeufername';
+  inv.AccountingCustomerParty.CompanyID :=  'HRB 456';
+  inv.AccountingCustomerParty.Address.StreetName := 'Kaeuferstrasse 1';
+  inv.AccountingCustomerParty.Address.City := 'Kaeuferstadt';
+  inv.AccountingCustomerParty.Address.PostalZone := '05678';
+  inv.AccountingCustomerParty.Address.CountryCode := 'DE';
+  inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
+
+  //Lieferanschrift rechnungsweit (BG-13), in allen Profilen zulaessig. Ohne Lieferdatum im
+  //Kopf (BT-72) verlangt BR-FX-EN-04 mindestens das Lieferland (BT-80).
+  inv.DeliveryInformation.Name := 'Kaeufername Werk 2';
+  inv.DeliveryInformation.Address.StreetName := 'Werkstrasse 5';
+  inv.DeliveryInformation.Address.City := 'Kaeuferstadt';
+  inv.DeliveryInformation.Address.PostalZone := '05679';
+  inv.DeliveryInformation.Address.CountryCode := 'DE';
+
+  inv.PaymentTypes.AddPaymentType.PaymentMeansCode := ipmc_InstrumentNotDefined;
+
+  inv.PaymentTermsType := iptt_None;
+
+  with inv.InvoiceLines.AddInvoiceLine do
+  begin
+    ID := '1';
+    Name := 'Hydraulikoel HLP 46';
+    Quantity := 200;
+    UnitCode := TInvoiceUnitCode.iuc_litre;
+    TaxPercent := 19.0;
+    TaxCategory := TInvoiceDutyTaxFeeCategoryCode.idtfcc_S_StandardRate;
+    GrossPriceAmount := 15.50;
+    NetPriceAmount := 15.50;
+    LineAmount := 3100.00;
+    //nur ZUGFeRD/Factur-X EXTENDED
+    DeliveryNoteNumber := 'LS-2026-88741';       //BT-X-92 Lieferscheinnummer
+    DeliveryNoteLineID := '1';                   //BT-X-93 Position auf dem Lieferschein
+    DeliveryNoteDate := EncodeDate(2026,9,12);   //BT-X-94 Lieferscheindatum
+    ActualDeliveryDate := EncodeDate(2026,9,12); //Tatsaechliches Lieferdatum der Position
+  end;
+  with inv.InvoiceLines.AddInvoiceLine do
+  begin
+    ID := '2';
+    Name := 'Schmierfett 400 g';
+    Quantity := 10;
+    UnitCode := TInvoiceUnitCodeHelper.MapUnitOfMeasure('Stk',suc);
+    TaxPercent := 19.0;
+    TaxCategory := TInvoiceDutyTaxFeeCategoryCode.idtfcc_S_StandardRate;
+    GrossPriceAmount := 24.90;
+    NetPriceAmount := 24.90;
+    LineAmount := 249.00;
+    //nur ZUGFeRD/Factur-X EXTENDED, zweiter Lieferschein, spaeter zugestellt
+    DeliveryNoteNumber := 'LS-2026-88902';
+    DeliveryNoteLineID := '1';
+    DeliveryNoteDate := EncodeDate(2026,9,19);
+    ActualDeliveryDate := EncodeDate(2026,9,22);
+  end;
+  with inv.InvoiceLines.AddInvoiceLine do
+  begin
+    ID := '3';
+    Name := 'Oelfilter';
+    Quantity := 5;
+    UnitCode := TInvoiceUnitCodeHelper.MapUnitOfMeasure('Stk',suc);
+    TaxPercent := 19.0;
+    TaxCategory := TInvoiceDutyTaxFeeCategoryCode.idtfcc_S_StandardRate;
+    GrossPriceAmount := 12.00;
+    NetPriceAmount := 12.00;
+    LineAmount := 60.00;
+    //nur ZUGFeRD/Factur-X EXTENDED, derselbe Lieferschein wie Position 2
+    DeliveryNoteNumber := 'LS-2026-88902';
+    DeliveryNoteLineID := '2';
+    DeliveryNoteDate := EncodeDate(2026,9,19);
+    ActualDeliveryDate := EncodeDate(2026,9,22);
+  end;
+
+  inv.TaxAmountTotal := 647.71; //Summe der gesamten MwSt
+  with inv.TaxAmountSubtotals.AddTaxAmount do
+  begin
+    TaxPercent := 19.0;
+    TaxCategory := TInvoiceDutyTaxFeeCategoryCode.idtfcc_S_StandardRate;
+    TaxableAmount := 3409.00;
+    TaxAmount := 647.71;
+  end;
+
+  inv.LineAmount := 3409.00;         //Summe
+  inv.TaxExclusiveAmount := 3409.00; //Summe ohne MwSt
+  inv.TaxInclusiveAmount := 4056.71; //Summe inkl MwSt
+  inv.AllowanceTotalAmount := 0;
+  inv.ChargeTotalAmount := 0;
+  inv.PrepaidAmount := 0;
+  inv.PayableAmount := 4056.71;      //Summe Zahlbar
+end;
+
 class procedure TInvoiceTestCases.MinimalbeispielB2BOhneLeitwegID(
   inv: TInvoice);
 var
@@ -1614,7 +1810,7 @@ begin
   end;
 
   inv.PaymentTermsType := iptt_Net;
-  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[DateToStr(inv.InvoiceDueDate)]);
+  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[FormatDateTime('dd.mm.yyyy',inv.InvoiceDueDate)]);
 
   with inv.InvoiceLines.AddInvoiceLine do
   begin
@@ -1641,6 +1837,7 @@ begin
     TaxPercent := 0;
     TaxCategory := TInvoiceDutyTaxFeeCategoryCode.idtfcc_AE_VATReverseCharge;
     TaxExemptionReason := 'Hiermit erlaube ich mir folgende Rechnung fuer Bauleistungen zu stellen. Die Umsatzsteuer fuer diese Leistung schuldet nach Paragraph 13b UStG der Leistungsempfaenger.';
+    TaxExemptionReasonCode := 'VATEX-EU-AE'; //BT-121, optional neben dem Text (BR-AE-10)
     TaxableAmount := 200.0;
     TaxAmount := 0.0;
   end;
@@ -2155,7 +2352,7 @@ begin
   end;
 
   inv.PaymentTermsType := iptt_Net;
-  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[DateToStr(inv.InvoiceDueDate)]);
+  inv.PaymentTermNetNote := Format('Zahlbar bis zum %s ohne Abzug.',[FormatDateTime('dd.mm.yyyy',inv.InvoiceDueDate)]);
 
   with inv.InvoiceLines.AddInvoiceLine do
   begin
@@ -2235,6 +2432,31 @@ begin
   inv.ChargeTotalAmount := 0; //Zuschlaege
   inv.PrepaidAmount := 0; //Anzahlungen
   inv.PayableAmount := 476.00;      //Summe Zahlbar MwSt
+end;
+
+class procedure TInvoiceTestCases.TitelPositionsgruppenExtended(inv: TInvoice);
+var
+  suc : Boolean;
+begin
+  //Titel/Positionsgruppen wie oben, dazu die Untertypen aus ZUGFeRD/Factur-X EXTENDED
+  //(BT-X-8): der Titel ist eine reine Zwischensumme ohne Steuerkategorie, eine
+  //zusaetzliche Unterposition ist nur Information und zaehlt nicht in die Summen
+  TitelPositionsgruppen(inv);
+  inv.InvoiceLines[0].TaxCategory := TInvoiceDutyTaxFeeCategoryCode.idtfcc_None;
+  inv.InvoiceLines[0].TaxPercent := 0;
+  with inv.InvoiceLines[0].SubInvoiceLines.AddInvoiceLine do
+  begin
+    ID := '01.03'; //Positionsnummer
+    LineStatusReasonCode := ilsrc_Information; //zaehlt nicht in BT-106 und nicht in den Titelbetrag
+    Name := 'Montage (im Preis enthalten)'; //Kurztext
+    Quantity := 1; //Menge
+    UnitCode := TInvoiceUnitCodeHelper.MapUnitOfMeasure('Stk',suc); //Mengeneinheit
+    TaxPercent := 19.0; //MwSt
+    TaxCategory := TInvoiceDutyTaxFeeCategoryCode.idtfcc_S_StandardRate;
+    GrossPriceAmount := 50; //Brutto-Einzelpreis
+    NetPriceAmount := 50; //Netto-Einzelpreis
+    LineAmount := 50;
+  end;
 end;
 
 class procedure TInvoiceTestCases.VierNachkommastellen(inv: TInvoice);
@@ -2334,6 +2556,154 @@ begin
   inv.ChargeTotalAmount := 0; //Zuschlaege
   inv.PrepaidAmount := 0; //Anzahlungen
   inv.PayableAmount := 9.82;      //Summe Zahlbar MwSt
+end;
+
+class procedure TInvoiceTestCases.BasismengeNachkommastellen(inv: TInvoice);
+var
+  suc : Boolean;
+begin
+  inv.InvoiceNumber := 'R2020-0815';
+  inv.InvoiceIssueDate := TInvoiceTestCases.InvoiceIssueDate;          //Rechnungsdatum
+  inv.InvoiceDueDate := TInvoiceTestCases.InvoiceDueDate;         //Faelligkeitsdatum
+  inv.InvoicePeriodStartDate := TInvoiceTestCases.InvoicePeriodStartDate;
+  inv.InvoicePeriodEndDate := TInvoiceTestCases.InvoicePeriodEndDate;
+  inv.InvoiceTypeCode := TInvoiceTypeCode.itc_CommercialInvoice; //Schlussrechnung
+  inv.InvoiceCurrencyCode := 'EUR';
+  inv.TaxCurrencyCode := 'EUR';
+  inv.BuyerReference := TInvoiceEmptyLeitwegID.NON_EXISTENT; //B2B ohne Leitweg-ID
+  with inv.Notes.AddNote do //Sollte ausgefuellt werden
+  begin
+    Content := 'Geschaeftsfuehrer Herr Meier - HRB 789';
+    SubjectCode := insc_REG;
+  end;
+
+  inv.AccountingSupplierParty.Name := '';
+  inv.AccountingSupplierParty.RegistrationName := 'Verkaeufername'; //Sollte ausgefuellt werden
+  inv.AccountingSupplierParty.CompanyID :=  '';
+  inv.AccountingSupplierParty.Address.StreetName := ''; //Nicht wirklich Pflicht
+  inv.AccountingSupplierParty.Address.City := 'Verkaeuferstadt';
+  inv.AccountingSupplierParty.Address.PostalZone := '01234';
+  inv.AccountingSupplierParty.Address.CountryCode := 'DE';
+  //inv.AccountingSupplierParty.VATCompanyID := 'DE123456788';
+  inv.AccountingSupplierParty.VATCompanyNumber := '222/111/4444';
+  inv.AccountingSupplierParty.ContactName := 'Meier';
+  inv.AccountingSupplierParty.ContactTelephone := '030 0815';
+  inv.AccountingSupplierParty.ContactElectronicMail := 'meier@company.com';
+  //BT-34 Gibt die elektronische Adresse des Verkaeufers an, an die die Antwort auf eine Rechnung gesendet werden kann.
+  //Aktuell nur Unterstuetzung fuer schemeID=EM ElectronicMail
+  //Weitere Codes auf Anfrage
+  //https://www.xrepository.de/details/urn:xoev-de:kosit:codeliste:eas_4#version
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@company.com';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
+  //Um valide Rechnung zu erzeugen, weil keine UStID vorhanden ist
+  if (inv.AccountingSupplierParty.VATCompanyID = '') and
+     (inv.AccountingSupplierParty.CompanyID = '') then
+    inv.AccountingSupplierParty.CompanyID := TInvoiceEmptyLeitwegID.NON_EXISTENT;
+
+  inv.AccountingCustomerParty.Name := '';
+  inv.AccountingCustomerParty.RegistrationName := 'Kaeufername'; //Sollte ausgefuellt werden
+  inv.AccountingCustomerParty.CompanyID :=  'HRB 456';
+  inv.AccountingCustomerParty.Address.StreetName := ''; //Nicht wirklich Pflicht
+  inv.AccountingCustomerParty.Address.City := 'Kaeuferstadt';
+  inv.AccountingCustomerParty.Address.PostalZone := '05678';
+  inv.AccountingCustomerParty.Address.CountryCode := 'DE';
+  //bei AccountingCustomerParty nur eine VAT von beiden
+  //Die EN16931 laesst ausschliesslich die UStID zu
+  //Wenn nur die VATCompanyNumber angegeben wird, liefert die Validierung gegen ZUGFeRD einen Fehler
+  inv.AccountingCustomerParty.VATCompanyID := 'DE123456788';
+  //inv.AccountingCustomerParty.VATCompanyNumber := '222/111/4444';
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'antwortaufrechnung@kunde.de'; //BT-49
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := 'EM';
+
+  //Lieferdatum
+  inv.DeliveryInformation.ActualDeliveryDate := TInvoiceTestCases.InvoicePeriodEndDate;
+
+  inv.PaymentTypes.AddPaymentType.PaymentMeansCode := ipmc_InstrumentNotDefined;
+
+  inv.PaymentTermsType := iptt_None;
+
+  with inv.InvoiceLines.AddInvoiceLine do
+  begin
+    ID := '01'; //Positionsnummer
+    Name := 'Kurzinfo Artikel 1'; //Kurztext
+    Description := 'Langtext Artikel'+#13#10+'Zeile 2'+#13#10+'Zeile 3'; //Laengere Beschreibung
+    Quantity := 4; //Menge in Kubikmeter
+    UnitCode := TInvoiceUnitCode.iuc_cubic_metre; //Mengeneinheit
+    TaxPercent := 19.0; //MwSt
+    TaxCategory := TInvoiceDutyTaxFeeCategoryCode.idtfcc_S_StandardRate;
+    GrossPriceAmount := 0.05; //Brutto-Einzelpreis je 0.001 m3
+    DiscountOnTheGrossPrice := 0;
+    NetPriceAmount := 0.05; //Netto-Einzelpreis je 0.001 m3
+    BaseQuantity := 0.001; //Preiseinheit mit 3 Nachkommastellen
+    BaseQuantityUnitCode := TInvoiceUnitCode.iuc_cubic_metre; //wie UnitCode (PEPPOL-EN16931-R130)
+    LineAmount := 200.00; //4 * 0.05 / 0.001 (PEPPOL-EN16931-R120)
+  end;
+
+  inv.TaxAmountTotal := 38.00; //Summe der gesamten MwSt
+  with inv.TaxAmountSubtotals.AddTaxAmount do
+  begin
+    TaxPercent := 19.0;
+    TaxCategory := TInvoiceDutyTaxFeeCategoryCode.idtfcc_S_StandardRate;
+    TaxableAmount := 200.00;
+    TaxAmount := 38.00;
+  end;
+
+  inv.LineAmount := 200.00;        //Summe
+  inv.TaxExclusiveAmount := 200.00; //Summe ohne MwSt
+  inv.TaxInclusiveAmount := 238.00; //Summe inkl MwSt
+  inv.AllowanceTotalAmount := 0; //Abzuege
+  inv.ChargeTotalAmount := 0; //Zuschlaege
+  inv.PrepaidAmount := 0; //Anzahlungen
+  inv.PayableAmount := 238.00;      //Summe Zahlbar MwSt
+end;
+
+class procedure TInvoiceTestCases.PeppolEndpointSchemeID(inv: TInvoice;
+  const SchemeIDVerkaeufer, SchemeIDKaeufer: String);
+begin
+  MinimalbeispielB2BOhneLeitwegID(inv);
+
+  //BT-34 elektronische Adresse des Verkaeufers
+  //https://docs.peppol.eu/poacc/billing/3.0/codelist/eas/
+  if SchemeIDVerkaeufer = '0088' then
+    inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := '9482348239847239874'
+  else
+    inv.AccountingSupplierParty.ElectronicAddressSellerBuyer := 'rechnung@example.org';
+  inv.AccountingSupplierParty.ElectronicAddressSellerBuyerSchemeID := SchemeIDVerkaeufer;
+  //BT-49 elektronische Adresse des Kaeufers
+  if SchemeIDKaeufer = '0002' then
+    inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'FR23342'
+  else
+    inv.AccountingCustomerParty.ElectronicAddressSellerBuyer := 'einkauf@example.org';
+  inv.AccountingCustomerParty.ElectronicAddressSellerBuyerSchemeID := SchemeIDKaeufer;
+end;
+
+class procedure TInvoiceTestCases.PartyIdentifierGLN(inv: TInvoice;
+  KennungVerwenden, GLNVerwenden, GlaeubigerIDVerwenden: Boolean);
+begin
+  //Die Glaeubiger-ID (BT-90) belegt in UBL ebenfalls eine cac:PartyIdentification beim
+  //Verkaeufer, unterschieden nur ueber schemeID SEPA. Basis ist die Lastschrift, damit BG-19
+  //vollstaendig ist. Ergebnis: der KoSIT-Validator akzeptiert die Kombination, valitool.org
+  //meldet dagegen VD-Valitool-23, weil es alle cac:PartyIdentification zusammenzaehlt.
+  if GlaeubigerIDVerwenden then
+    Lastschrift(inv)
+  else
+    MinimalbeispielB2BOhneLeitwegID(inv);
+
+  if KennungVerwenden then
+  begin
+    //BT-29 Kreditor-Nr. und BT-46 Debitor-Nr., das sind keine GLN und daher ohne schemeID
+    inv.AccountingSupplierParty.IdentifierSellerBuyer := 'KRED-10001';
+    inv.AccountingCustomerParty.IdentifierSellerBuyer := '20003';
+  end;
+  if GLNVerwenden then
+  begin
+    //BT-29-0/BT-46-0 mit Schema BT-29-1/BT-46-1, unter Peppol wird die Pruefziffer
+    //der GLN geprueft (PEPPOL-COMMON-R040)
+    inv.AccountingSupplierParty.GlobalIdentifierSellerBuyer := '4123450000027';
+    inv.AccountingSupplierParty.GlobalIdentifierSellerBuyerSchemeID := '0088';
+    inv.AccountingCustomerParty.GlobalIdentifierSellerBuyer := '4260000000004';
+    inv.AccountingCustomerParty.GlobalIdentifierSellerBuyerSchemeID := '0088';
+  end;
 end;
 
 initialization

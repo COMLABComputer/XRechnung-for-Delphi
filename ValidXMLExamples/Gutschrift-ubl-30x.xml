@@ -13,6 +13,13 @@
     <cbc:StartDate>2026-07-31</cbc:StartDate>
     <cbc:EndDate>2026-08-29</cbc:EndDate>
   </cac:InvoicePeriod>
+  <cac:AdditionalDocumentReference>
+    <cbc:ID>PR-123</cbc:ID>
+    <cbc:DocumentTypeCode>50</cbc:DocumentTypeCode>
+  </cac:AdditionalDocumentReference>
+  <cac:OriginatorDocumentReference>
+    <cbc:ID>BT-17 12345</cbc:ID>
+  </cac:OriginatorDocumentReference>
   <cac:AccountingSupplierParty>
     <cac:Party>
       <cbc:EndpointID schemeID="EM">antwortaufrechnung@company.com</cbc:EndpointID>
@@ -110,13 +117,16 @@
     <cbc:TaxInclusiveAmount currencyID="EUR">500.00</cbc:TaxInclusiveAmount>
     <cbc:AllowanceTotalAmount currencyID="EUR">0.00</cbc:AllowanceTotalAmount>
     <cbc:ChargeTotalAmount currencyID="EUR">0.00</cbc:ChargeTotalAmount>
-    <cbc:PrepaidAmount currencyID="EUR">0.00</cbc:PrepaidAmount>
     <cbc:PayableAmount currencyID="EUR">500.00</cbc:PayableAmount>
   </cac:LegalMonetaryTotal>
   <cac:CreditNoteLine>
     <cbc:ID>01</cbc:ID>
     <cbc:CreditedQuantity unitCode="H87">1.0000</cbc:CreditedQuantity>
     <cbc:LineExtensionAmount currencyID="EUR">500.00</cbc:LineExtensionAmount>
+    <cac:DocumentReference>
+      <cbc:ID>OBJ-4711</cbc:ID>
+      <cbc:DocumentTypeCode>130</cbc:DocumentTypeCode>
+    </cac:DocumentReference>
     <cac:Item>
       <cbc:Description>Provision</cbc:Description>
       <cbc:Name>Provision</cbc:Name>
